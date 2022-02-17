@@ -28,19 +28,14 @@ fn main() {
 
 	shader_program.set_used();
 	let vertices: Vec<f32> = vec![
-		0.5, -0.5, 0.0, 1., 1., 0.,   // bottom right
-        -0.5, -0.5, 0.0, 0.,1.,0.,  // bottom let
-        0.0,  0.5, 0.0, 0.,0.,1.,   // top 
-        
-        
-        
-        
-		0.5, 0.8, 0.0, 1., 0., 0.,
-		0.0, 0.8, 0.0, 0.,1.,0.,
-		0.0, 0.5, 0.0, 0.,0.,1.,
-        
-        
-        
+	// 	x, 		y,  	z,   	r,	b,	g
+		0.5, 	-0.5, 	0.0, 	1., 0., 0.,   // bottom right
+    	-0.5, 	-0.5, 	0.0, 	0.,	1.,	0.,  // bottom let
+    	0.0,  	0.5, 	0.0, 	0.,	0.,	1.,   // top 
+
+		0.5, 	0.8, 	0.0, 	1., 0., 0.,
+		0.0, 	0.8, 	0.0, 	0.,	1.,	0.,
+		0.0, 	0.5, 	0.0, 	0.,	0.,	1.,
         
 	];
 
@@ -82,7 +77,7 @@ fn main() {
 			gl::FLOAT, // data type
 			gl::FALSE, // normalized (int-to-float conversion)
 			(6 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
-			std::ptr::null() // offset of the first component
+			(3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid // offset of the first component
 		);
 	}
     'main: loop {
