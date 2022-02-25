@@ -120,9 +120,6 @@ fn main() -> Result<(), io::Error> {
     }
 	let perspective : Matrix<f32> = Matrix::projection(1.0472, 1.77777776, 0.1, 100.);
 
-	
-
-
 	let transform_loc : gl::types::GLint;
 	let persp_loc : gl::types::GLint;
 
@@ -131,17 +128,10 @@ fn main() -> Result<(), io::Error> {
 		let cname = std::ffi::CString::new("transform").expect("CString::new failed");
 		transform_loc = gl::GetUniformLocation(shader_program.id(), cname.as_ptr());
 		
-		
 		let cname = std::ffi::CString::new("perspective").expect("CString::new failed");
 		persp_loc = gl::GetUniformLocation(shader_program.id(), cname.as_ptr());
 	}
 	
-	// unsafe {
-	// }
-
-
-	println!("{}", perspective);
-
 	let mut petit_puto = 0.;
 
     'main: loop {

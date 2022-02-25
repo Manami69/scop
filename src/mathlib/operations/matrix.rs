@@ -331,6 +331,7 @@ where
         }
         Vector::from(new)
     }
+
     /// Matrix mul
     ///
     /// If A is an m × n matrix and B is an n × p matrix,
@@ -585,7 +586,7 @@ impl fmt::Display for SingularMatrix {
 
 /// FUNCTION FOR GRAPHIC PROJECTS
 impl Matrix<f32> {
-    /// BASE
+    /// MAT4
     ///
     /// create an identity matrix of shape 4*4
     pub fn mat4() -> Matrix<f32> {
@@ -613,7 +614,7 @@ impl Matrix<f32> {
         ])
     }
 
-    /// Return a scaling matrix
+    /// scale the actual matrix by scalar
     pub fn scale(&self, scl: f32) -> Matrix<f32> {
         self * Matrix::from([
             [scl, 0., 0., 0.],
@@ -623,7 +624,7 @@ impl Matrix<f32> {
         ])
     }
 
-    /// Return a translate matrix
+    /// translate the actual matrix by (Tx, Ty, Tz)
     pub fn translate(&self, tx: f32, ty: f32, tz: f32) -> Matrix<f32> {
         self * Matrix::from([
             [1., 0., 0., 0.],
@@ -633,7 +634,7 @@ impl Matrix<f32> {
         ])
     }
 
-    /// Return a rotated matrix of angle in radian on the Axis (x, y , z , 1)
+    /// Rotate the actual matrix of angle theta in radian on the Axis (x, y , z , 1)
     ///
     /// https://learnopengl.com/Getting-started/Transformations
     pub fn rotate(&self, angle: f32, axis: Vector<f32>) -> Matrix<f32> {

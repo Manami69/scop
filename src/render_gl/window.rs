@@ -30,13 +30,6 @@ impl Window {
             .resizable()
             .build()
             .unwrap();
-        // let gl_context = window.gl_create_context().unwrap();
-        // let gl =
-        //         gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
-        //         // unsafe {
-        //         //     gl::Viewport(0, 0, 900, 700); // set viewport
-        //         //     gl::ClearColor(0.3, 0.3, 0.5, 1.0);
-        //         // }
         let event_pump = sdl_context.event_pump().unwrap();
         (event_pump, window, video_subsystem)
     }
