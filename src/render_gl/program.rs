@@ -1,7 +1,7 @@
+use super::shader::{Shader, *};
 use gl;
 use std;
 use std::ffi::{CStr, CString};
-use super::shader::{Shader, *};
 
 pub struct Program {
     id: gl::types::GLuint,

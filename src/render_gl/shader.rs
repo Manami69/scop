@@ -2,7 +2,10 @@ use gl;
 use std;
 use std::ffi::{CStr, CString};
 
-pub fn shader_from_source(source: &CStr, kind: gl::types::GLuint) -> Result<gl::types::GLuint, String> {
+pub fn shader_from_source(
+    source: &CStr,
+    kind: gl::types::GLuint,
+) -> Result<gl::types::GLuint, String> {
     let id = unsafe { gl::CreateShader(kind) };
 
     unsafe {
