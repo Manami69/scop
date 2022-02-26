@@ -5,15 +5,11 @@ use std::fmt;
 
 /// Returns a Matrix
 ///
-/// # Arguments
+/// ### values
 ///
-///  * number arrays of same size inside one array
-///
-/// # values
-///
-/// * data : vec with all elements of the Matrix
-/// * n : number of column
-/// * m : number of rows
+/// * `data` : vec with all elements of the Matrix
+/// * `n` : number of column
+/// * `m` : number of rows
 #[derive(PartialEq, PartialOrd, Eq, Clone, Hash, Debug)]
 pub struct Matrix<K>
 where

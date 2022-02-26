@@ -3,7 +3,7 @@ use crate::mathlib::types::number_type::Number;
 
 use std::fmt;
 
-use std::ops::{Add, Mul, Sub};
+use std::ops::{Add, Div, Mul, Sub};
 
 /// OPERATOR + / - / * OVERLOADING
 ///
@@ -25,7 +25,7 @@ where
             self.data
                 .iter()
                 .zip(_rhs.data.iter())
-                .map(|x| K::clone(x.0) + K::clone(x.1))
+                .map(|x| *x.0 + *x.1)
                 .collect(),
             self.shape(),
         )
@@ -45,7 +45,7 @@ where
             self.data
                 .iter()
                 .zip(_rhs.data.iter())
-                .map(|x| K::clone(x.0) + K::clone(x.1))
+                .map(|x| *x.0 + *x.1)
                 .collect(),
             self.shape(),
         )
@@ -65,7 +65,7 @@ where
             self.data
                 .iter()
                 .zip(_rhs.data.iter())
-                .map(|x| K::clone(x.0) + K::clone(x.1))
+                .map(|x| *x.0 + *x.1)
                 .collect(),
             self.shape(),
         )
@@ -85,7 +85,7 @@ where
             self.data
                 .iter()
                 .zip(_rhs.data.iter())
-                .map(|x| K::clone(x.0) + K::clone(x.1))
+                .map(|x| *x.0 + *x.1)
                 .collect(),
             self.shape(),
         )
@@ -106,7 +106,7 @@ where
             self.data
                 .iter()
                 .zip(_rhs.data.iter())
-                .map(|x| K::clone(x.0) - K::clone(x.1))
+                .map(|x| *x.0 - *x.1)
                 .collect(),
             self.shape(),
         )
@@ -126,7 +126,7 @@ where
             self.data
                 .iter()
                 .zip(_rhs.data.iter())
-                .map(|x| K::clone(x.0) - K::clone(x.1))
+                .map(|x| *x.0 - *x.1)
                 .collect(),
             self.shape(),
         )
@@ -146,7 +146,7 @@ where
             self.data
                 .iter()
                 .zip(_rhs.data.iter())
-                .map(|x| K::clone(x.0) - K::clone(x.1))
+                .map(|x| *x.0 - *x.1)
                 .collect(),
             self.shape(),
         )
@@ -166,7 +166,7 @@ where
             self.data
                 .iter()
                 .zip(_rhs.data.iter())
-                .map(|x| K::clone(x.0) - K::clone(x.1))
+                .map(|x| *x.0 - *x.1)
                 .collect(),
             self.shape(),
         )
@@ -181,10 +181,7 @@ where
 {
     type Output = Matrix<K>;
     fn mul(self, _rhs: K) -> Matrix<K> {
-        self.from_vec(
-            self.data.iter().map(|x| K::clone(x) * _rhs).collect(),
-            self.shape(),
-        )
+        self.from_vec(self.data.iter().map(|x| *x * _rhs).collect(), self.shape())
     }
 }
 
@@ -194,12 +191,29 @@ where
 {
     type Output = Matrix<K>;
     fn mul(self, _rhs: K) -> Matrix<K> {
-        self.from_vec(
-            self.data.iter().map(|x| K::clone(x) * _rhs).collect(),
-            self.shape(),
-        )
+        self.from_vec(self.data.iter().map(|x| *x * _rhs).collect(), self.shape())
     }
 }
+impl<K> Div<K> for Matrix<K>
+where
+    K: Number,
+{
+    type Output = Matrix<K>;
+    fn div(self, _rhs: K) -> Matrix<K> {
+        self.from_vec(self.data.iter().map(|x| *x / _rhs).collect(), self.shape())
+    }
+}
+
+impl<K> Div<K> for &Matrix<K>
+where
+    K: Number,
+{
+    type Output = Matrix<K>;
+    fn div(self, _rhs: K) -> Matrix<K> {
+        self.from_vec(self.data.iter().map(|x| *x / _rhs).collect(), self.shape())
+    }
+}
+
 impl Mul<f32> for Matrix<Complexf32> {
     type Output = Matrix<Complexf32>;
     fn mul(self, _rhs: f32) -> Matrix<Complexf32> {
@@ -599,22 +613,23 @@ impl Matrix<f32> {
     }
 
     /// PROJECTION MATRIX
+    ///
+    /// * `fov` - field of view, an angle in radian
+    ///
+    /// * `ratio` - ratio of window size H / H
+    ///
+    /// * `near` and `far` - distance from and to we are watching in the 3D World
     pub fn projection(fov: f32, ratio: f32, near: f32, far: f32) -> Matrix<f32> {
-		let tanf = (fov * 0.5).tan();
+        let tanf = (fov * 0.5).tan();
         Matrix::from([
             [1. / (ratio * tanf), 0., 0., 0.],
             [0., 1. / tanf, 0., 0.],
-            [
-                0.,
-                0.,
-                (far + near) / (far - near) * -1.,
-                -1.,
-            ],
+            [0., 0., (far + near) / (far - near) * -1., -1.],
             [0., 0., (2.0 * far * near) / (far - near) * -1., 1.],
         ])
     }
 
-    /// scale the actual matrix by scalar
+    /// scale the 4D matrix by a `scl` scalar
     pub fn scale(&self, scl: f32) -> Matrix<f32> {
         self * Matrix::from([
             [scl, 0., 0., 0.],
@@ -624,7 +639,13 @@ impl Matrix<f32> {
         ])
     }
 
-    /// translate the actual matrix by (Tx, Ty, Tz)
+    /// translate the 4D matrix
+    ///
+    /// * `tx` - translation on x-axis
+    ///
+    /// * `ty` - translation on y-axis
+    ///
+    /// * `tz` - trannslation on z-axis
     pub fn translate(&self, tx: f32, ty: f32, tz: f32) -> Matrix<f32> {
         self * Matrix::from([
             [1., 0., 0., 0.],
@@ -634,8 +655,13 @@ impl Matrix<f32> {
         ])
     }
 
-    /// Rotate the actual matrix of angle theta in radian on the Axis (x, y , z , 1)
+    /// Rotate the 4D matrix
     ///
+    /// * `angle` - the angle of rotation in radian (use the function radian() to
+    /// use degre angles)
+    ///
+    /// * `axis` - a 3D vector representing the axis we are turning around
+    ///  
     /// https://learnopengl.com/Getting-started/Transformations
     pub fn rotate(&self, angle: f32, axis: Vector<f32>) -> Matrix<f32> {
         if axis.size() != 3 {
@@ -667,8 +693,27 @@ impl Matrix<f32> {
             [0., 0., 0., 1.],
         ])
     }
+    /// RETURNS CAMERA MATRIX
+    ///
+    /// * `eye` - the position of the camera
+    ///
+    /// * `center` - the position where it's pointing
+    ///
+    /// * `up` -  define upwards direction in this 3D world
+    /// u = (0, 0, 1) means that the Z axis points upwards
+    pub fn view(eye: Vector<f32>, center: Vector<f32>, up: Vector<f32>) -> Matrix<f32> {
+        let vz = (&eye - center).normalize();
+        let vx = Vector::cross_product(&up, &vz).normalize();
+        let vy = Vector::cross_product(&vz, &vx).normalize();
+        Matrix::from([
+            [vx.data[0], vy.data[0], vz.data[0], 0.],
+            [vx.data[1], vy.data[1], vz.data[1], 0.],
+            [vx.data[2], vy.data[2], vz.data[2], 0.],
+            [-vx.dot(&eye), -vy.dot(&eye), -vz.dot(&eye), 1.],
+        ])
+    }
 
-	pub fn as_ptr(&self) -> *const gl::types::GLfloat {
-		self.data.as_ptr() as *const gl::types::GLfloat
-	}
+    pub fn as_ptr(&self) -> *const gl::types::GLfloat {
+        self.data.as_ptr() as *const gl::types::GLfloat
+    }
 }

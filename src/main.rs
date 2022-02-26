@@ -1,6 +1,7 @@
 use std::ffi::{CStr, CString};
 pub mod mathlib;
 use mathlib::classes::{matrix::Matrix, vector::Vector};
+use mathlib::operations::other::*;
 pub mod render_gl;
 use image::io::Reader as ImageReader;
 use render_gl::{program::*, shader::*, window::Window};
@@ -59,9 +60,10 @@ fn main() -> Result<(), io::Error> {
     shader_program.set_used();
     let vertices: Vec<f32> = vec![
         // 	x, 		y,  	z,   	r,	b,	g
-        0.5, -0.5, 0.0, 		1., 0., 0., 		0., 0., // bottom right
-        -0.5, -0.5, 0.0, 		0., 1., 0., 		1., 0., // bottom let
-        0.0, 0.5, 0.0, 		0., 0., 1., 		0.5,1., // top
+        0.5, -0.5, 0.0, 1., 0., 0., 0., 0., // bottom right
+        -0.5, -0.5, 0.0, 0., 1., 0., 1., 0., // bottom let
+        0.0, 0.5, 0.0, 0., 0., 1., 0.5,
+        1., // top
 
             // 0.5, 	0.8, 	0.0, 	1., 0., 0.,
             // 0.0, 	0.8, 	0.0, 	0.,	1.,	0.,
@@ -118,21 +120,24 @@ fn main() -> Result<(), io::Error> {
             (6 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid, // offset of the first component
         );
     }
-	let perspective : Matrix<f32> = Matrix::projection(1.0472, 1.77777776, 0.1, 100.);
+    let perspective: Matrix<f32> = Matrix::projection(radian(60.), 1.77777776, 0.1, 100.);
 
-	let transform_loc : gl::types::GLint;
-	let persp_loc : gl::types::GLint;
+    let transform_loc: gl::types::GLint;
+    let persp_loc: gl::types::GLint;
+    let camera_loc: gl::types::GLint;
 
+    unsafe {
+        let cname = std::ffi::CString::new("transform").expect("CString::new failed");
+        transform_loc = gl::GetUniformLocation(shader_program.id(), cname.as_ptr());
 
-	unsafe {
-		let cname = std::ffi::CString::new("transform").expect("CString::new failed");
-		transform_loc = gl::GetUniformLocation(shader_program.id(), cname.as_ptr());
-		
-		let cname = std::ffi::CString::new("perspective").expect("CString::new failed");
-		persp_loc = gl::GetUniformLocation(shader_program.id(), cname.as_ptr());
-	}
-	
-	let mut petit_puto = 0.;
+        let cname = std::ffi::CString::new("perspective").expect("CString::new failed");
+        persp_loc = gl::GetUniformLocation(shader_program.id(), cname.as_ptr());
+
+        let cname = std::ffi::CString::new("camera").expect("CString::new failed");
+        camera_loc = gl::GetUniformLocation(shader_program.id(), cname.as_ptr());
+    }
+
+    let mut petit_puto = 0.;
 
     'main: loop {
         for event in event_pump.poll_iter() {
@@ -148,25 +153,26 @@ fn main() -> Result<(), io::Error> {
             gl::BindTexture(gl::TEXTURE_2D, texture);
             gl::BindVertexArray(vao);
 
+            petit_puto += 0.05;
 
-			petit_puto += 0.05;
+            let rot: Matrix<f32> = Matrix::mat4().rotate(petit_puto, Vector::vec3(0., 1., 0.)); //Matrix::projection(1.0472, 1.7777776, 0.1, 1000.);
 
-			let rot : Matrix<f32> = Matrix::mat4().rotate(petit_puto, Vector::vec3(0., 1., 0.)); //Matrix::projection(1.0472, 1.7777776, 0.1, 1000.);
-	
-			let trans : Matrix<f32> = rot.translate(petit_puto.cos(), petit_puto.sin(), -2.0 + petit_puto.cos()); //Matrix::projection(1.0472, 1.7777776, 0.1, 1000.);
-
-
-			
-			gl::UniformMatrix4fv(transform_loc, 1, gl::FALSE, trans.as_ptr());
-			gl::UniformMatrix4fv(persp_loc, 1, gl::FALSE, perspective.as_ptr());
-
+            let trans: Matrix<f32> =
+                rot.translate(petit_puto.cos(), petit_puto.sin(), -2.0 + petit_puto.cos()); //Matrix::projection(1.0472, 1.7777776, 0.1, 1000.);
+            let view: Matrix<f32> = Matrix::view(
+                Vector::vec3(petit_puto.sin() * 10., 0., petit_puto.cos() * 10.),
+                Vector::vec3(0., 0., 0.),
+                Vector::vec3(0., 1., 0.),
+            );
+            gl::UniformMatrix4fv(transform_loc, 1, gl::FALSE, trans.as_ptr());
+            gl::UniformMatrix4fv(persp_loc, 1, gl::FALSE, perspective.as_ptr());
+            gl::UniformMatrix4fv(camera_loc, 1, gl::FALSE, view.as_ptr());
 
             gl::DrawArrays(
                 gl::TRIANGLES,             // mode
                 0,                         // starting index in the enabled arrays
                 vertices.len() as i32 / 3, // number of indices to be rendered
             );
-
         }
         window.gl_swap_window();
         // render window contents here

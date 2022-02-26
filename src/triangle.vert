@@ -8,10 +8,12 @@ out vec2 TexCoord;
 
 uniform mat4 transform;
 uniform mat4 perspective;
+uniform mat4 camera;
+
 
 void main()
 {
-    gl_Position = perspective * transform * vec4(Position, 1.0);
+    gl_Position = perspective * camera* transform  * vec4(Position, 1.0);
     vertexColor = vec4(aColor, 1.0); // set the output variable to a dark-red color
     TexCoord = aTexCoord;
 }

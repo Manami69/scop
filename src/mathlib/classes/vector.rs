@@ -119,7 +119,7 @@ where
 }
 
 impl Vector<f32> {
-	pub fn vec3(x: f32, y: f32, z: f32) -> Vector<f32> {
-		Vector::from([x, y, z])
-	}
+    pub fn vec3(x: f32, y: f32, z: f32) -> Vector<f32> {
+        Vector::from([x, y, z])
+    }
 }
