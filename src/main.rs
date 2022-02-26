@@ -27,6 +27,8 @@ fn main() -> Result<(), io::Error> {
         Shader::from_frag_source(&CString::new(include_str!("triangle.frag")).unwrap()).unwrap();
 
     let shader_program = Program::from_shaders(&[vert_shader, frag_shader]).unwrap();
+
+    unsafe {gl::Enable(gl::DEPTH_TEST);}  
     ////// TEST
     let mut texture = 0;
     unsafe {
@@ -59,15 +61,54 @@ fn main() -> Result<(), io::Error> {
     /////
     shader_program.set_used();
     let vertices: Vec<f32> = vec![
-        // 	x, 		y,  	z,   	r,	b,	g
-        0.5, -0.5, 0.0, 1., 0., 0., 0., 0., // bottom right
-        -0.5, -0.5, 0.0, 0., 1., 0., 1., 0., // bottom let
-        0.0, 0.5, 0.0, 0., 0., 1., 0.5,
-        1., // top
+        // // 	x, 		y,  	z,   	r,	b,	g
+        // 0.5, -0.5, 0.0, 1., 0., 0., 0., 0., // bottom right
+        // -0.5, -0.5, 0.0, 0., 1., 0., 1., 0., // bottom let
+        // 0.0, 0.5, 0.0, 0., 0., 1., 0.5,
+        // 1., // top
 
-            // 0.5, 	0.8, 	0.0, 	1., 0., 0.,
-            // 0.0, 	0.8, 	0.0, 	0.,	1.,	0.,
-            // 0.0, 	0.5, 	0.0, 	0.,	0.,	1.,
+            -0.5, -0.5, -0.5,  0.0, 0.0,
+             0.5, -0.5, -0.5,  1.0, 0.0,
+             0.5,  0.5, -0.5,  1.0, 1.0,
+             0.5,  0.5, -0.5,  1.0, 1.0,
+            -0.5,  0.5, -0.5,  0.0, 1.0,
+            -0.5, -0.5, -0.5,  0.0, 0.0,
+        
+            -0.5, -0.5,  0.5,  0.0, 0.0,
+             0.5, -0.5,  0.5,  1.0, 0.0,
+             0.5,  0.5,  0.5,  1.0, 1.0,
+             0.5,  0.5,  0.5,  1.0, 1.0,
+            -0.5,  0.5,  0.5,  0.0, 1.0,
+            -0.5, -0.5,  0.5,  0.0, 0.0,
+        
+            -0.5,  0.5,  0.5,  1.0, 0.0,
+            -0.5,  0.5, -0.5,  1.0, 1.0,
+            -0.5, -0.5, -0.5,  0.0, 1.0,
+            -0.5, -0.5, -0.5,  0.0, 1.0,
+            -0.5, -0.5,  0.5,  0.0, 0.0,
+            -0.5,  0.5,  0.5,  1.0, 0.0,
+        
+             0.5,  0.5,  0.5,  1.0, 0.0,
+             0.5,  0.5, -0.5,  1.0, 1.0,
+             0.5, -0.5, -0.5,  0.0, 1.0,
+             0.5, -0.5, -0.5,  0.0, 1.0,
+             0.5, -0.5,  0.5,  0.0, 0.0,
+             0.5,  0.5,  0.5,  1.0, 0.0,
+        
+            -0.5, -0.5, -0.5,  0.0, 1.0,
+             0.5, -0.5, -0.5,  1.0, 1.0,
+             0.5, -0.5,  0.5,  1.0, 0.0,
+             0.5, -0.5,  0.5,  1.0, 0.0,
+            -0.5, -0.5,  0.5,  0.0, 0.0,
+            -0.5, -0.5, -0.5,  0.0, 1.0,
+        
+            -0.5,  0.5, -0.5,  0.0, 1.0,
+             0.5,  0.5, -0.5,  1.0, 1.0,
+             0.5,  0.5,  0.5,  1.0, 0.0,
+             0.5,  0.5,  0.5,  1.0, 0.0,
+            -0.5,  0.5,  0.5,  0.0, 0.0,
+            -0.5,  0.5, -0.5,  0.0, 1.0
+        
     ];
 
     let mut vbo: gl::types::GLuint = 0;
@@ -98,26 +139,26 @@ fn main() -> Result<(), io::Error> {
             3,         // the number of components per generic vertex attribute
             gl::FLOAT, // data type
             gl::FALSE, // normalized (int-to-float conversion)
-            (8 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
+            (5 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
             std::ptr::null(),                                     // offset of the first component
         );
+        // gl::EnableVertexAttribArray(1); // this is "layout (location = 0)" in vertex shader
+        // gl::VertexAttribPointer(
+        //     1,         // index of the generic vertex attribute ("layout (location = 0)")
+        //     3,         // the number of components per generic vertex attribute
+        //     gl::FLOAT, // data type
+        //     gl::FALSE, // normalized (int-to-float conversion)
+        //     (8 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
+        //     (3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid, // offset of the first component
+        // );
         gl::EnableVertexAttribArray(1); // this is "layout (location = 0)" in vertex shader
         gl::VertexAttribPointer(
             1,         // index of the generic vertex attribute ("layout (location = 0)")
-            3,         // the number of components per generic vertex attribute
-            gl::FLOAT, // data type
-            gl::FALSE, // normalized (int-to-float conversion)
-            (8 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
-            (3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid, // offset of the first component
-        );
-        gl::EnableVertexAttribArray(2); // this is "layout (location = 0)" in vertex shader
-        gl::VertexAttribPointer(
-            2,         // index of the generic vertex attribute ("layout (location = 0)")
             2,         // the number of components per generic vertex attribute
             gl::FLOAT, // data type
             gl::FALSE, // normalized (int-to-float conversion)
-            (8 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
-            (6 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid, // offset of the first component
+            (5 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
+            (3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid, // offset of the first component
         );
     }
     let perspective: Matrix<f32> = Matrix::projection(radian(60.), 1.77777776, 0.1, 100.);
@@ -147,7 +188,7 @@ fn main() -> Result<(), io::Error> {
             }
         }
         unsafe {
-            gl::Clear(gl::COLOR_BUFFER_BIT);
+            gl::Clear(gl::COLOR_BUFFER_BIT| gl::DEPTH_BUFFER_BIT);
         }
         unsafe {
             gl::BindTexture(gl::TEXTURE_2D, texture);
