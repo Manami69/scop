@@ -7,9 +7,19 @@ use image::io::Reader as ImageReader;
 use render_gl::{program::*, shader::*, window::Window};
 use std::io;
 use std::io::Cursor;
+use std::env::Args;
 pub mod env;
+pub mod obj_parser;
 
 fn main() -> Result<(), io::Error> {
+    // args
+    let args : Vec<String>= std::env::args().collect();
+    if args.len() != 2 { 
+        return Ok(());
+    }
+    let mut obj = obj_parser::Objf::new();
+    obj.read_file(&args[1]);
+    ////////////////////////////////////////////////////////
     let (mut event_pump, window, video_subsystem) = Window::new();
 
     let gl_context = window.gl_create_context().unwrap();
@@ -60,56 +70,57 @@ fn main() -> Result<(), io::Error> {
     }
     /////
     shader_program.set_used();
-    let vertices: Vec<f32> = vec![
-        // // 	x, 		y,  	z,   	r,	b,	g
-        // 0.5, -0.5, 0.0, 1., 0., 0., 0., 0., // bottom right
-        // -0.5, -0.5, 0.0, 0., 1., 0., 1., 0., // bottom let
-        // 0.0, 0.5, 0.0, 0., 0., 1., 0.5,
-        // 1., // top
+    // let vertices: Vec<f32> = vec![
+    //     // // 	x, 		y,  	z,   	r,	b,	g
+    //     // 0.5, -0.5, 0.0, 1., 0., 0., 0., 0., // bottom right
+    //     // -0.5, -0.5, 0.0, 0., 1., 0., 1., 0., // bottom let
+    //     // 0.0, 0.5, 0.0, 0., 0., 1., 0.5,
+    //     // 1., // top
 
-            -0.5, -0.5, -0.5,  0.0, 0.0,
-             0.5, -0.5, -0.5,  1.0, 0.0,
-             0.5,  0.5, -0.5,  1.0, 1.0,
-             0.5,  0.5, -0.5,  1.0, 1.0,
-            -0.5,  0.5, -0.5,  0.0, 1.0,
-            -0.5, -0.5, -0.5,  0.0, 0.0,
+    //         -0.5, -0.5, -0.5,  0.0, 0.0,
+    //          0.5, -0.5, -0.5,  1.0, 0.0,
+    //          0.5,  0.5, -0.5,  1.0, 1.0,
+    //          0.5,  0.5, -0.5,  1.0, 1.0,
+    //         -0.5,  0.5, -0.5,  0.0, 1.0,
+    //         -0.5, -0.5, -0.5,  0.0, 0.0,
         
-            -0.5, -0.5,  0.5,  0.0, 0.0,
-             0.5, -0.5,  0.5,  1.0, 0.0,
-             0.5,  0.5,  0.5,  1.0, 1.0,
-             0.5,  0.5,  0.5,  1.0, 1.0,
-            -0.5,  0.5,  0.5,  0.0, 1.0,
-            -0.5, -0.5,  0.5,  0.0, 0.0,
+    //         -0.5, -0.5,  0.5,  0.0, 0.0,
+    //          0.5, -0.5,  0.5,  1.0, 0.0,
+    //          0.5,  0.5,  0.5,  1.0, 1.0,
+    //          0.5,  0.5,  0.5,  1.0, 1.0,
+    //         -0.5,  0.5,  0.5,  0.0, 1.0,
+    //         -0.5, -0.5,  0.5,  0.0, 0.0,
         
-            -0.5,  0.5,  0.5,  1.0, 0.0,
-            -0.5,  0.5, -0.5,  1.0, 1.0,
-            -0.5, -0.5, -0.5,  0.0, 1.0,
-            -0.5, -0.5, -0.5,  0.0, 1.0,
-            -0.5, -0.5,  0.5,  0.0, 0.0,
-            -0.5,  0.5,  0.5,  1.0, 0.0,
+    //         -0.5,  0.5,  0.5,  1.0, 0.0,
+    //         -0.5,  0.5, -0.5,  1.0, 1.0,
+    //         -0.5, -0.5, -0.5,  0.0, 1.0,
+    //         -0.5, -0.5, -0.5,  0.0, 1.0,
+    //         -0.5, -0.5,  0.5,  0.0, 0.0,
+    //         -0.5,  0.5,  0.5,  1.0, 0.0,
         
-             0.5,  0.5,  0.5,  1.0, 0.0,
-             0.5,  0.5, -0.5,  1.0, 1.0,
-             0.5, -0.5, -0.5,  0.0, 1.0,
-             0.5, -0.5, -0.5,  0.0, 1.0,
-             0.5, -0.5,  0.5,  0.0, 0.0,
-             0.5,  0.5,  0.5,  1.0, 0.0,
+    //          0.5,  0.5,  0.5,  1.0, 0.0,
+    //          0.5,  0.5, -0.5,  1.0, 1.0,
+    //          0.5, -0.5, -0.5,  0.0, 1.0,
+    //          0.5, -0.5, -0.5,  0.0, 1.0,
+    //          0.5, -0.5,  0.5,  0.0, 0.0,
+    //          0.5,  0.5,  0.5,  1.0, 0.0,
         
-            -0.5, -0.5, -0.5,  0.0, 1.0,
-             0.5, -0.5, -0.5,  1.0, 1.0,
-             0.5, -0.5,  0.5,  1.0, 0.0,
-             0.5, -0.5,  0.5,  1.0, 0.0,
-            -0.5, -0.5,  0.5,  0.0, 0.0,
-            -0.5, -0.5, -0.5,  0.0, 1.0,
+    //         -0.5, -0.5, -0.5,  0.0, 1.0,
+    //          0.5, -0.5, -0.5,  1.0, 1.0,
+    //          0.5, -0.5,  0.5,  1.0, 0.0,
+    //          0.5, -0.5,  0.5,  1.0, 0.0,
+    //         -0.5, -0.5,  0.5,  0.0, 0.0,
+    //         -0.5, -0.5, -0.5,  0.0, 1.0,
         
-            -0.5,  0.5, -0.5,  0.0, 1.0,
-             0.5,  0.5, -0.5,  1.0, 1.0,
-             0.5,  0.5,  0.5,  1.0, 0.0,
-             0.5,  0.5,  0.5,  1.0, 0.0,
-            -0.5,  0.5,  0.5,  0.0, 0.0,
-            -0.5,  0.5, -0.5,  0.0, 1.0
+    //         -0.5,  0.5, -0.5,  0.0, 1.0,
+    //          0.5,  0.5, -0.5,  1.0, 1.0,
+    //          0.5,  0.5,  0.5,  1.0, 0.0,
+    //          0.5,  0.5,  0.5,  1.0, 0.0,
+    //         -0.5,  0.5,  0.5,  0.0, 0.0,
+    //         -0.5,  0.5, -0.5,  0.0, 1.0
         
-    ];
+    // ];
+    let vertices = obj.get_v().unwrap();
 
     let mut vbo: gl::types::GLuint = 0;
     unsafe {
@@ -136,10 +147,10 @@ fn main() -> Result<(), io::Error> {
         gl::EnableVertexAttribArray(0); // this is "layout (location = 0)" in vertex shader
         gl::VertexAttribPointer(
             0,         // index of the generic vertex attribute ("layout (location = 0)")
-            3,         // the number of components per generic vertex attribute
+            4,         // the number of components per generic vertex attribute
             gl::FLOAT, // data type
             gl::FALSE, // normalized (int-to-float conversion)
-            (5 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
+            (4 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
             std::ptr::null(),                                     // offset of the first component
         );
         // gl::EnableVertexAttribArray(1); // this is "layout (location = 0)" in vertex shader
@@ -151,15 +162,15 @@ fn main() -> Result<(), io::Error> {
         //     (8 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
         //     (3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid, // offset of the first component
         // );
-        gl::EnableVertexAttribArray(1); // this is "layout (location = 0)" in vertex shader
-        gl::VertexAttribPointer(
-            1,         // index of the generic vertex attribute ("layout (location = 0)")
-            2,         // the number of components per generic vertex attribute
-            gl::FLOAT, // data type
-            gl::FALSE, // normalized (int-to-float conversion)
-            (5 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
-            (3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid, // offset of the first component
-        );
+        // gl::EnableVertexAttribArray(1); // this is "layout (location = 0)" in vertex shader
+        // gl::VertexAttribPointer(
+        //     1,         // index of the generic vertex attribute ("layout (location = 0)")
+        //     2,         // the number of components per generic vertex attribute
+        //     gl::FLOAT, // data type
+        //     gl::FALSE, // normalized (int-to-float conversion)
+        //     (6 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
+        //     (4 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid, // offset of the first component
+        // );
     }
     let perspective: Matrix<f32> = Matrix::projection(radian(60.), 1.77777776, 0.1, 100.);
 
@@ -178,7 +189,7 @@ fn main() -> Result<(), io::Error> {
         camera_loc = gl::GetUniformLocation(shader_program.id(), cname.as_ptr());
     }
 
-    let mut petit_puto = 0.;
+    let mut petit_puto:f32 = 0.4;
 
     'main: loop {
         for event in event_pump.poll_iter() {
@@ -194,14 +205,14 @@ fn main() -> Result<(), io::Error> {
             gl::BindTexture(gl::TEXTURE_2D, texture);
             gl::BindVertexArray(vao);
 
-            petit_puto += 0.05;
+            //petit_puto += 0.05;
 
-            let rot: Matrix<f32> = Matrix::mat4().rotate(petit_puto, Vector::vec3(0., 1., 0.)); //Matrix::projection(1.0472, 1.7777776, 0.1, 1000.);
+            let rot: Matrix<f32> = Matrix::mat4().rotate(100., Vector::vec3(0., 1., 0.)); //Matrix::projection(1.0472, 1.7777776, 0.1, 1000.);
 
             let trans: Matrix<f32> =
                 rot.translate(petit_puto.cos(), petit_puto.sin(), -2.0 + petit_puto.cos()); //Matrix::projection(1.0472, 1.7777776, 0.1, 1000.);
             let view: Matrix<f32> = Matrix::view(
-                Vector::vec3(petit_puto.sin() * 10., 0., petit_puto.cos() * 10.),
+                Vector::vec3(0., 0., 10.),
                 Vector::vec3(0., 0., 0.),
                 Vector::vec3(0., 1., 0.),
             );
@@ -212,7 +223,7 @@ fn main() -> Result<(), io::Error> {
             gl::DrawArrays(
                 gl::TRIANGLES,             // mode
                 0,                         // starting index in the enabled arrays
-                vertices.len() as i32 / 3, // number of indices to be rendered
+                vertices.len() as i32 / 4, // number of indices to be rendered
             );
         }
         window.gl_swap_window();
