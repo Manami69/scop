@@ -4,12 +4,15 @@ use mathlib::classes::{matrix::Matrix, vector::Vector};
 use mathlib::operations::other::*;
 pub mod render_gl;
 use image::io::Reader as ImageReader;
+use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
 use render_gl::{program::*, shader::*, window::Window};
 use std::env::Args;
 use std::io;
 use std::io::Cursor;
 pub mod env;
 pub mod obj_parser;
+use obj_parser::obj_file::Objfile;
 
 fn main() -> Result<(), io::Error> {
     // args
@@ -17,7 +20,7 @@ fn main() -> Result<(), io::Error> {
     if args.len() != 2 {
         return Ok(());
     }
-    let mut obj = obj_parser::Objf::new();
+    let mut obj = Objfile::new();
     obj.read_file(&args[1]);
     ////////////////////////////////////////////////////////
     let (mut event_pump, window, video_subsystem) = Window::new();
@@ -72,56 +75,6 @@ fn main() -> Result<(), io::Error> {
     }
     /////
     shader_program.set_used();
-    // let vertices: Vec<f32> = vec![
-    //     // // 	x, 		y,  	z,   	r,	b,	g
-    //     // 0.5, -0.5, 0.0, 1., 0., 0., 0., 0., // bottom right
-    //     // -0.5, -0.5, 0.0, 0., 1., 0., 1., 0., // bottom let
-    //     // 0.0, 0.5, 0.0, 0., 0., 1., 0.5,
-    //     // 1., // top
-
-    //         -0.5, -0.5, -0.5,  0.0, 0.0,
-    //          0.5, -0.5, -0.5,  1.0, 0.0,
-    //          0.5,  0.5, -0.5,  1.0, 1.0,
-    //          0.5,  0.5, -0.5,  1.0, 1.0,
-    //         -0.5,  0.5, -0.5,  0.0, 1.0,
-    //         -0.5, -0.5, -0.5,  0.0, 0.0,
-
-    //         -0.5, -0.5,  0.5,  0.0, 0.0,
-    //          0.5, -0.5,  0.5,  1.0, 0.0,
-    //          0.5,  0.5,  0.5,  1.0, 1.0,
-    //          0.5,  0.5,  0.5,  1.0, 1.0,
-    //         -0.5,  0.5,  0.5,  0.0, 1.0,
-    //         -0.5, -0.5,  0.5,  0.0, 0.0,
-
-    //         -0.5,  0.5,  0.5,  1.0, 0.0,
-    //         -0.5,  0.5, -0.5,  1.0, 1.0,
-    //         -0.5, -0.5, -0.5,  0.0, 1.0,
-    //         -0.5, -0.5, -0.5,  0.0, 1.0,
-    //         -0.5, -0.5,  0.5,  0.0, 0.0,
-    //         -0.5,  0.5,  0.5,  1.0, 0.0,
-
-    //          0.5,  0.5,  0.5,  1.0, 0.0,
-    //          0.5,  0.5, -0.5,  1.0, 1.0,
-    //          0.5, -0.5, -0.5,  0.0, 1.0,
-    //          0.5, -0.5, -0.5,  0.0, 1.0,
-    //          0.5, -0.5,  0.5,  0.0, 0.0,
-    //          0.5,  0.5,  0.5,  1.0, 0.0,
-
-    //         -0.5, -0.5, -0.5,  0.0, 1.0,
-    //          0.5, -0.5, -0.5,  1.0, 1.0,
-    //          0.5, -0.5,  0.5,  1.0, 0.0,
-    //          0.5, -0.5,  0.5,  1.0, 0.0,
-    //         -0.5, -0.5,  0.5,  0.0, 0.0,
-    //         -0.5, -0.5, -0.5,  0.0, 1.0,
-
-    //         -0.5,  0.5, -0.5,  0.0, 1.0,
-    //          0.5,  0.5, -0.5,  1.0, 1.0,
-    //          0.5,  0.5,  0.5,  1.0, 0.0,
-    //          0.5,  0.5,  0.5,  1.0, 0.0,
-    //         -0.5,  0.5,  0.5,  0.0, 0.0,
-    //         -0.5,  0.5, -0.5,  0.0, 1.0
-
-    // ];
     let vertices = obj.get_v();
 
     let mut vbo: gl::types::GLuint = 0;
@@ -191,34 +144,62 @@ fn main() -> Result<(), io::Error> {
         camera_loc = gl::GetUniformLocation(shader_program.id(), cname.as_ptr());
     }
 
-    let mut petit_puto: f32 = 0.4;
-
+    let mut trans_x : f32 = 0.;
+    let mut trans_y : f32 = 0.;
+    let mut trans_z : f32 = 0.;
+    let mut cam_z : f32 = 0.;
+    let mut turn_x : f32 = 0.;
+    let mut turn_y = 0.;
+    let mut turn_z = 0.;
+    let mut poly : bool = false;
     'main: loop {
         for event in event_pump.poll_iter() {
             match event {
-                sdl2::event::Event::Quit { .. } => break 'main,
+                Event::Quit { .. } |
+                Event::KeyDown { keycode: Some(Keycode::Escape), .. }=> break 'main,
+                // ZOOM CAMERA
+                Event::MouseWheel { y: num, .. } => cam_z -= num as f32,
+                // TRANSLATION COMMAND
+                Event::KeyDown { keycode: Some(Keycode::W), .. } => trans_y += 1.,
+                Event::KeyDown { keycode: Some(Keycode::S), .. } => trans_y += -1.,
+                Event::KeyDown { keycode: Some(Keycode::A), .. } => trans_x += -1.,
+                Event::KeyDown { keycode: Some(Keycode::D), .. } => trans_x += 1.,
+                Event::KeyDown { keycode: Some(Keycode::Q), .. } => trans_z += -1.,
+                Event::KeyDown { keycode: Some(Keycode::E), .. } => trans_z += 1.,
+                // ROTATION COMMAND
+                Event::KeyDown { keycode: Some(Keycode::Up), .. } => turn_y += 0.1,
+                Event::KeyDown { keycode: Some(Keycode::Down), .. } => turn_y += -0.1,
+                Event::KeyDown { keycode: Some(Keycode::Left), .. } => turn_x += -0.1,
+                Event::KeyDown { keycode: Some(Keycode::Right), .. } => turn_x += 0.1,
+                Event::KeyDown { keycode: Some(Keycode::Z), .. } => turn_z += -0.1,
+                Event::KeyDown { keycode: Some(Keycode::X), .. } => turn_z += 0.1,
+                // ENABLE DISABLE POLYGON
+                Event::KeyDown { keycode: Some(Keycode::P), .. } => poly = !poly,
+
                 _ => {}
             }
         }
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+            if poly {gl::PolygonMode(gl::FRONT_AND_BACK,gl::LINE);} else {gl::PolygonMode(gl::FRONT_AND_BACK,gl::FILL);}
         }
         unsafe {
             gl::BindTexture(gl::TEXTURE_2D, texture);
             gl::BindVertexArray(vao);
 
-            petit_puto += 0.05;
 
-            let rot: Matrix<f32> = Matrix::mat4().rotate(petit_puto, Vector::vec3(0., 1., 0.)); //Matrix::projection(1.0472, 1.7777776, 0.1, 1000.);
+            let mut model: Matrix<f32> = Matrix::mat4();
+            model = model.rotate(turn_x, Vector::vec3(0., 1., 0.));
+            model = model.rotate(turn_y, Vector::vec3(1., 0., 0.));
+            model = model.rotate(turn_z, Vector::vec3(0., 0., 1.));
 
-            let trans: Matrix<f32> =
-                rot.translate(petit_puto.cos(), petit_puto.sin(), -2.0 + petit_puto.cos()); //Matrix::projection(1.0472, 1.7777776, 0.1, 1000.);
+            model = model.translate(trans_x, trans_y, trans_z);
             let view: Matrix<f32> = Matrix::view(
-                Vector::vec3(0., 0., 10.),
+                Vector::vec3(0., 0., cam_z),
                 Vector::vec3(0., 0., 0.),
                 Vector::vec3(0., 1., 0.),
             );
-            gl::UniformMatrix4fv(transform_loc, 1, gl::FALSE, trans.as_ptr());
+            gl::UniformMatrix4fv(transform_loc, 1, gl::FALSE, model.as_ptr());
             gl::UniformMatrix4fv(persp_loc, 1, gl::FALSE, perspective.as_ptr());
             gl::UniformMatrix4fv(camera_loc, 1, gl::FALSE, view.as_ptr());
 
