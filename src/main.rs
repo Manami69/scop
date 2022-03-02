@@ -5,16 +5,16 @@ use mathlib::operations::other::*;
 pub mod render_gl;
 use image::io::Reader as ImageReader;
 use render_gl::{program::*, shader::*, window::Window};
+use std::env::Args;
 use std::io;
 use std::io::Cursor;
-use std::env::Args;
 pub mod env;
 pub mod obj_parser;
 
 fn main() -> Result<(), io::Error> {
     // args
-    let args : Vec<String>= std::env::args().collect();
-    if args.len() != 2 { 
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() != 2 {
         return Ok(());
     }
     let mut obj = obj_parser::Objf::new();
@@ -38,7 +38,9 @@ fn main() -> Result<(), io::Error> {
 
     let shader_program = Program::from_shaders(&[vert_shader, frag_shader]).unwrap();
 
-    unsafe {gl::Enable(gl::DEPTH_TEST);}  
+    unsafe {
+        gl::Enable(gl::DEPTH_TEST);
+    }
     ////// TEST
     let mut texture = 0;
     unsafe {
@@ -83,44 +85,44 @@ fn main() -> Result<(), io::Error> {
     //          0.5,  0.5, -0.5,  1.0, 1.0,
     //         -0.5,  0.5, -0.5,  0.0, 1.0,
     //         -0.5, -0.5, -0.5,  0.0, 0.0,
-        
+
     //         -0.5, -0.5,  0.5,  0.0, 0.0,
     //          0.5, -0.5,  0.5,  1.0, 0.0,
     //          0.5,  0.5,  0.5,  1.0, 1.0,
     //          0.5,  0.5,  0.5,  1.0, 1.0,
     //         -0.5,  0.5,  0.5,  0.0, 1.0,
     //         -0.5, -0.5,  0.5,  0.0, 0.0,
-        
+
     //         -0.5,  0.5,  0.5,  1.0, 0.0,
     //         -0.5,  0.5, -0.5,  1.0, 1.0,
     //         -0.5, -0.5, -0.5,  0.0, 1.0,
     //         -0.5, -0.5, -0.5,  0.0, 1.0,
     //         -0.5, -0.5,  0.5,  0.0, 0.0,
     //         -0.5,  0.5,  0.5,  1.0, 0.0,
-        
+
     //          0.5,  0.5,  0.5,  1.0, 0.0,
     //          0.5,  0.5, -0.5,  1.0, 1.0,
     //          0.5, -0.5, -0.5,  0.0, 1.0,
     //          0.5, -0.5, -0.5,  0.0, 1.0,
     //          0.5, -0.5,  0.5,  0.0, 0.0,
     //          0.5,  0.5,  0.5,  1.0, 0.0,
-        
+
     //         -0.5, -0.5, -0.5,  0.0, 1.0,
     //          0.5, -0.5, -0.5,  1.0, 1.0,
     //          0.5, -0.5,  0.5,  1.0, 0.0,
     //          0.5, -0.5,  0.5,  1.0, 0.0,
     //         -0.5, -0.5,  0.5,  0.0, 0.0,
     //         -0.5, -0.5, -0.5,  0.0, 1.0,
-        
+
     //         -0.5,  0.5, -0.5,  0.0, 1.0,
     //          0.5,  0.5, -0.5,  1.0, 1.0,
     //          0.5,  0.5,  0.5,  1.0, 0.0,
     //          0.5,  0.5,  0.5,  1.0, 0.0,
     //         -0.5,  0.5,  0.5,  0.0, 0.0,
     //         -0.5,  0.5, -0.5,  0.0, 1.0
-        
+
     // ];
-    let vertices = obj.get_v().unwrap();
+    let vertices = obj.get_v();
 
     let mut vbo: gl::types::GLuint = 0;
     unsafe {
@@ -189,7 +191,7 @@ fn main() -> Result<(), io::Error> {
         camera_loc = gl::GetUniformLocation(shader_program.id(), cname.as_ptr());
     }
 
-    let mut petit_puto:f32 = 0.4;
+    let mut petit_puto: f32 = 0.4;
 
     'main: loop {
         for event in event_pump.poll_iter() {
@@ -199,15 +201,15 @@ fn main() -> Result<(), io::Error> {
             }
         }
         unsafe {
-            gl::Clear(gl::COLOR_BUFFER_BIT| gl::DEPTH_BUFFER_BIT);
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
         unsafe {
             gl::BindTexture(gl::TEXTURE_2D, texture);
             gl::BindVertexArray(vao);
 
-            //petit_puto += 0.05;
+            petit_puto += 0.05;
 
-            let rot: Matrix<f32> = Matrix::mat4().rotate(100., Vector::vec3(0., 1., 0.)); //Matrix::projection(1.0472, 1.7777776, 0.1, 1000.);
+            let rot: Matrix<f32> = Matrix::mat4().rotate(petit_puto, Vector::vec3(0., 1., 0.)); //Matrix::projection(1.0472, 1.7777776, 0.1, 1000.);
 
             let trans: Matrix<f32> =
                 rot.translate(petit_puto.cos(), petit_puto.sin(), -2.0 + petit_puto.cos()); //Matrix::projection(1.0472, 1.7777776, 0.1, 1000.);
