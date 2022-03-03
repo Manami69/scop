@@ -1,19 +1,17 @@
-use std::ffi::{CStr, CString};
+use std::ffi::CString;
 pub mod mathlib;
 use mathlib::classes::{matrix::Matrix, vector::Vector};
 use mathlib::operations::other::*;
 pub mod render_gl;
-use image::io::Reader as ImageReader;
+use render_gl::{program::*, shader::*, window::Window};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
-use render_gl::{program::*, shader::*, window::Window};
-use std::env::Args;
 use std::io;
-use std::io::Cursor;
 pub mod env;
 pub mod obj_parser;
 use obj_parser::obj_file::Objfile;
 
+#[warn(unused_variables)]
 fn main() -> Result<(), io::Error> {
     // args
     let args: Vec<String> = std::env::args().collect();
@@ -24,9 +22,8 @@ fn main() -> Result<(), io::Error> {
     obj.read_file(&args[1]);
     ////////////////////////////////////////////////////////
     let (mut event_pump, window, video_subsystem) = Window::new();
-
-    let gl_context = window.gl_create_context().unwrap();
-    let gl =
+    let _gl_context = window.gl_create_context().unwrap();
+    let _gl =
         gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
     unsafe {
         gl::Viewport(0, 0, 1280, 720); // set viewport
@@ -34,46 +31,19 @@ fn main() -> Result<(), io::Error> {
     }
 
     let vert_shader =
-        Shader::from_vert_source(&CString::new(include_str!("triangle.vert")).unwrap()).unwrap();
+        Shader::from_vert_source(&CString::new(include_str!("shaders/triangle.vert")).unwrap())
+            .unwrap();
 
     let frag_shader =
-        Shader::from_frag_source(&CString::new(include_str!("triangle.frag")).unwrap()).unwrap();
+        Shader::from_frag_source(&CString::new(include_str!("shaders/triangle.frag")).unwrap())
+            .unwrap();
 
     let shader_program = Program::from_shaders(&[vert_shader, frag_shader]).unwrap();
 
     unsafe {
         gl::Enable(gl::DEPTH_TEST);
     }
-    ////// TEST
-    let mut texture = 0;
-    unsafe {
-        gl::GenTextures(1, &mut texture);
-        gl::BindTexture(gl::TEXTURE_2D, texture); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
-                                                  // set the texture wrapping parameters
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32); // set texture wrapping to gl::REPEAT (default wrapping method)
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
-        // set texture filtering parameters
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
-    }
-    // load image, create texture and generate mipmaps
-    let img = image::open("wall.jpg").unwrap();
-    let data = img.to_rgb8().into_raw();
-    unsafe {
-        gl::TexImage2D(
-            gl::TEXTURE_2D,
-            0,
-            gl::RGB as i32,
-            img.width() as i32,
-            img.height() as i32,
-            0,
-            gl::RGB,
-            gl::UNSIGNED_BYTE,
-            &data[0] as *const u8 as *const gl::types::GLvoid,
-        );
-        gl::GenerateMipmap(gl::TEXTURE_2D);
-    }
-    /////
+
     shader_program.set_used();
     let vertices = obj.get_v();
 
@@ -93,7 +63,7 @@ fn main() -> Result<(), io::Error> {
     }
     let mut vao: gl::types::GLuint = 0;
     unsafe {
-        gl::GenVertexArrays(2, &mut vao);
+        gl::GenVertexArrays(1, &mut vao);
     }
     unsafe {
         gl::BindVertexArray(vao);
@@ -144,49 +114,109 @@ fn main() -> Result<(), io::Error> {
         camera_loc = gl::GetUniformLocation(shader_program.id(), cname.as_ptr());
     }
 
-    let mut trans_x : f32 = 0.;
-    let mut trans_y : f32 = 0.;
-    let mut trans_z : f32 = 0.;
-    let mut cam_z : f32 = 0.;
-    let mut turn_x : f32 = 0.;
+    let mut trans_x: f32 = 0.;
+    let mut trans_y: f32 = 0.;
+    let mut trans_z: f32 = 0.;
+    let mut cam_z: f32 = 0.;
+    let mut turn_x: f32 = 0.;
     let mut turn_y = 0.;
     let mut turn_z = 0.;
-    let mut poly : bool = false;
+    let mut poly: bool = false;
+    let mut pas: f32 = 1.;
     'main: loop {
         for event in event_pump.poll_iter() {
             match event {
-                Event::Quit { .. } |
-                Event::KeyDown { keycode: Some(Keycode::Escape), .. }=> break 'main,
+                Event::Quit { .. }
+                | Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
+                } => break 'main,
                 // ZOOM CAMERA
                 Event::MouseWheel { y: num, .. } => cam_z -= num as f32,
                 // TRANSLATION COMMAND
-                Event::KeyDown { keycode: Some(Keycode::W), .. } => trans_y += 1.,
-                Event::KeyDown { keycode: Some(Keycode::S), .. } => trans_y += -1.,
-                Event::KeyDown { keycode: Some(Keycode::A), .. } => trans_x += -1.,
-                Event::KeyDown { keycode: Some(Keycode::D), .. } => trans_x += 1.,
-                Event::KeyDown { keycode: Some(Keycode::Q), .. } => trans_z += -1.,
-                Event::KeyDown { keycode: Some(Keycode::E), .. } => trans_z += 1.,
+                Event::KeyDown {
+                    keycode: Some(Keycode::W),
+                    ..
+                } => trans_y += pas,
+                Event::KeyDown {
+                    keycode: Some(Keycode::S),
+                    ..
+                } => trans_y += -pas,
+                Event::KeyDown {
+                    keycode: Some(Keycode::A),
+                    ..
+                } => trans_x += -pas,
+                Event::KeyDown {
+                    keycode: Some(Keycode::D),
+                    ..
+                } => trans_x += pas,
+                Event::KeyDown {
+                    keycode: Some(Keycode::Q),
+                    ..
+                } => trans_z += -pas,
+                Event::KeyDown {
+                    keycode: Some(Keycode::E),
+                    ..
+                } => trans_z += pas,
+                Event::KeyDown {
+                    keycode: Some(Keycode::M),
+                    ..
+                } => pas += 0.2,
+                Event::KeyDown {
+                    keycode: Some(Keycode::N),
+                    ..
+                } => {
+                    if pas - 0.2 < 0. {
+                        pas = 0.
+                    } else {
+                        pas -= 0.2
+                    }
+                }
                 // ROTATION COMMAND
-                Event::KeyDown { keycode: Some(Keycode::Up), .. } => turn_y += 0.1,
-                Event::KeyDown { keycode: Some(Keycode::Down), .. } => turn_y += -0.1,
-                Event::KeyDown { keycode: Some(Keycode::Left), .. } => turn_x += -0.1,
-                Event::KeyDown { keycode: Some(Keycode::Right), .. } => turn_x += 0.1,
-                Event::KeyDown { keycode: Some(Keycode::Z), .. } => turn_z += -0.1,
-                Event::KeyDown { keycode: Some(Keycode::X), .. } => turn_z += 0.1,
+                Event::KeyDown {
+                    keycode: Some(Keycode::Up),
+                    ..
+                } => turn_y += 0.1,
+                Event::KeyDown {
+                    keycode: Some(Keycode::Down),
+                    ..
+                } => turn_y += -0.1,
+                Event::KeyDown {
+                    keycode: Some(Keycode::Left),
+                    ..
+                } => turn_x += -0.1,
+                Event::KeyDown {
+                    keycode: Some(Keycode::Right),
+                    ..
+                } => turn_x += 0.1,
+                Event::KeyDown {
+                    keycode: Some(Keycode::Z),
+                    ..
+                } => turn_z += -0.1,
+                Event::KeyDown {
+                    keycode: Some(Keycode::X),
+                    ..
+                } => turn_z += 0.1,
                 // ENABLE DISABLE POLYGON
-                Event::KeyDown { keycode: Some(Keycode::P), .. } => poly = !poly,
+                Event::KeyDown {
+                    keycode: Some(Keycode::P),
+                    ..
+                } => poly = !poly,
 
                 _ => {}
             }
         }
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-            if poly {gl::PolygonMode(gl::FRONT_AND_BACK,gl::LINE);} else {gl::PolygonMode(gl::FRONT_AND_BACK,gl::FILL);}
+            if poly {
+                gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
+            } else {
+                gl::PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
+            }
         }
         unsafe {
-            gl::BindTexture(gl::TEXTURE_2D, texture);
+            // bind texture
             gl::BindVertexArray(vao);
-
 
             let mut model: Matrix<f32> = Matrix::mat4();
             model = model.rotate(turn_x, Vector::vec3(0., 1., 0.));

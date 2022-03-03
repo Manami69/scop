@@ -34,8 +34,7 @@ const V: usize = 0;
 const VT: usize = 1;
 const VN: usize = 2;
 
-
-// TODO: remplir par objet et non pas par fichier
+// TODO: remplir par objet/groupe et non pas par fichier
 pub struct Objfile {
     pub v: Vec<Vec<f32>>,
     pub vt: Vec<Vec<f32>>,
@@ -83,8 +82,13 @@ impl Objfile {
     }
     fn parse_line(&mut self, line: &String) {
         let mut split: Vec<&str> = line.split(' ').collect();
-        split = split.iter().filter_map(|s| (!s.is_empty()).then(|| *s)).collect();
-        if split.is_empty() {return}
+        split = split
+            .iter()
+            .filter_map(|s| (!s.is_empty()).then(|| *s))
+            .collect();
+        if split.is_empty() {
+            return;
+        }
         match split[0] {
             "v" => self.parse_v(split),
             "vt" => self.parse_vt(split),
@@ -149,15 +153,15 @@ impl Objfile {
             return;
         }
         split[1..len].into_iter().for_each(|point| {
-            let v_type : Vec<&str>= point.split('/').collect();
-            for (i, val ) in v_type.iter().enumerate() {
+            let v_type: Vec<&str> = point.split('/').collect();
+            for (i, val) in v_type.iter().enumerate() {
                 match val.parse::<usize>() {
-                Err(_) => {}
-                Ok(num) => {
-                    vec[i].push(num);
-                }
-            };
-        }
+                    Err(_) => {}
+                    Ok(num) => {
+                        vec[i].push(num);
+                    }
+                };
+            }
         });
         let veclen = vec[V].len();
         if veclen != len - 1 {
@@ -167,30 +171,33 @@ impl Objfile {
             // let mut collec: Vec<Vec<usize>> = Vec::new();
             for j in 0..veclen - 2 {
                 for (i, val) in vec.iter().enumerate() {
-                    if val.len() != 0{
+                    if val.len() != 0 {
                         self.f[i].push(val[0]);
                         self.f[i].push(val[j + 1]);
                         self.f[i].push(val[j + 2]);
                     }
                 }
-            //     collec.push(vec![vec[0], vec[i + 1], vec[i + 2]])
+                //     collec.push(vec![vec[0], vec[i + 1], vec[i + 2]])
             }
             // collec.iter().for_each(|val| self.f.push(val.clone()));
         } else {
             for (i, val) in vec.iter().enumerate() {
                 val.iter().for_each(|v| self.f[i].push(*v))
-            }        }
+            }
+        }
     }
 
     pub fn get_v(&self) -> Vec<f32> {
         let mut arr: Vec<f32> = Vec::new();
         // println!("{:?}", self.f);
-        if self.f[V].len() == 0 { return arr }
+        if self.f[V].len() == 0 {
+            return arr;
+        }
         self.f[V].iter().for_each(|index| {
-                self.v[*index - 1].iter().for_each(|vertice| {
-                    arr.push(*vertice);
-                });
+            self.v[*index - 1].iter().for_each(|vertice| {
+                arr.push(*vertice);
             });
+        });
         arr
     }
 }
