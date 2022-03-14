@@ -49,12 +49,12 @@ fn main() -> Result<(), io::Error> {
     shader_program.set_used();
     let vertices = obj.get_v();
 
+    let vao = Vao::new(&gl);
+    vao.bind();
     let vertices_buffer = Vbo::new(&gl);
     vertices_buffer.bind();
     vertices_buffer.set_vertex(&vertices);
 
-    let vao = Vao::new(&gl);
-    vao.bind();
     vao.attrib(0, 4, 4, 0);
    
     let perspective: Matrix<f32> = Matrix::projection(radian(60.), 1.77777776, 0.1, 100.);
