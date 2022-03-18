@@ -2,11 +2,11 @@ use super::shader::{Shader, *};
 use std;
 pub struct Program {
     id: gl::types::GLuint,
-    gl : gl::Gl,
+    gl: gl::Gl,
 }
 
 impl Program {
-    pub fn from_shaders(gl: &gl::Gl,shaders: &[Shader]) -> Result<Program, String> {
+    pub fn from_shaders(gl: &gl::Gl, shaders: &[Shader]) -> Result<Program, String> {
         let program_id = unsafe { gl.CreateProgram() };
 
         for shader in shaders {
@@ -50,7 +50,10 @@ impl Program {
             }
         }
 
-        Ok(Program { id: program_id, gl : gl.clone() })
+        Ok(Program {
+            id: program_id,
+            gl: gl.clone(),
+        })
     }
 
     pub fn id(&self) -> gl::types::GLuint {
@@ -71,4 +74,3 @@ impl Drop for Program {
         }
     }
 }
-

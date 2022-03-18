@@ -2,7 +2,7 @@ use std;
 use std::ffi::{CStr, CString};
 
 pub fn shader_from_source(
-    gl : &gl::Gl,
+    gl: &gl::Gl,
     source: &CStr,
     kind: gl::types::GLuint,
 ) -> Result<gl::types::GLuint, String> {
@@ -51,16 +51,23 @@ pub struct Shader {
 }
 
 impl Shader {
-    pub fn from_source(gl:&gl::Gl,source: &CStr, kind: gl::types::GLenum) -> Result<Shader, String> {
+    pub fn from_source(
+        gl: &gl::Gl,
+        source: &CStr,
+        kind: gl::types::GLenum,
+    ) -> Result<Shader, String> {
         let id = shader_from_source(gl, source, kind)?;
-        Ok(Shader { id:id, gl:gl.clone() })
+        Ok(Shader {
+            id: id,
+            gl: gl.clone(),
+        })
     }
 
-    pub fn from_vert_source(gl:&gl::Gl,source: &CStr) -> Result<Shader, String> {
+    pub fn from_vert_source(gl: &gl::Gl, source: &CStr) -> Result<Shader, String> {
         Shader::from_source(gl, source, gl::VERTEX_SHADER)
     }
 
-    pub fn from_frag_source(gl:&gl::Gl, source: &CStr) -> Result<Shader, String> {
+    pub fn from_frag_source(gl: &gl::Gl, source: &CStr) -> Result<Shader, String> {
         Shader::from_source(gl, source, gl::FRAGMENT_SHADER)
     }
 

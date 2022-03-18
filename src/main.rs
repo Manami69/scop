@@ -3,7 +3,7 @@ pub mod mathlib;
 use mathlib::classes::{matrix::Matrix, vector::Vector};
 use mathlib::operations::other::*;
 pub mod render_gl;
-use render_gl::{program::*, shader::*, window::Window, vbo::Vbo, vao::Vao};
+use render_gl::{program::*, shader::*, texture::*, vao::Vao, vbo::Vbo, window::Window};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use std::io;
@@ -23,22 +23,26 @@ fn main() -> Result<(), io::Error> {
     ////////////////////////////////////////////////////////
     let (mut event_pump, window, video_subsystem) = Window::new();
     let _gl_context = window.gl_create_context().unwrap();
-    let gl =
-        gl::Gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
-    
-    
-        unsafe {
+    let gl = gl::Gl::load_with(|s| {
+        video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void
+    });
+
+    unsafe {
         gl.Viewport(0, 0, 1280, 720); // set viewport
         gl.ClearColor(0.3, 0.3, 0.5, 1.0);
     }
 
-    let vert_shader =
-        Shader::from_vert_source(&gl, &CString::new(include_str!("shaders/triangle.vert")).unwrap())
-            .unwrap();
+    let vert_shader = Shader::from_vert_source(
+        &gl,
+        &CString::new(include_str!("shaders/triangle.vert")).unwrap(),
+    )
+    .unwrap();
 
-    let frag_shader =
-        Shader::from_frag_source(&gl, &CString::new(include_str!("shaders/triangle.frag")).unwrap())
-            .unwrap();
+    let frag_shader = Shader::from_frag_source(
+        &gl,
+        &CString::new(include_str!("shaders/triangle.frag")).unwrap(),
+    )
+    .unwrap();
 
     let shader_program = Program::from_shaders(&gl, &[vert_shader, frag_shader]).unwrap();
 
@@ -56,13 +60,26 @@ fn main() -> Result<(), io::Error> {
     vertices_buffer.set_vertex(&vertices);
 
     vao.attrib(0, 4, 4, 0);
-   
+
     let perspective: Matrix<f32> = Matrix::projection(radian(60.), 1.77777776, 0.1, 100.);
 
     let transform_loc: gl::types::GLint;
     let persp_loc: gl::types::GLint;
     let camera_loc: gl::types::GLint;
 
+    // TEXTURES MAPPING CUBE
+    let mut texture: Texture = Texture::new_cube(&gl);
+    // let faces = vec![
+    //     "skybox/right.jpg".to_string(),
+    //     "skybox/left.jpg".into(),
+    //     "skybox/top.jpg".into(),
+    //     "skybox/bottom.jpg".into(),
+    //     "skybox/front.jpg".into(),
+    //     "skybox/back.jpg".into(),
+    // ];
+	let faces = vec!["wall.jpg".to_string(); 6];
+	texture.load_cube(faces);
+	///////////
     unsafe {
         let cname = std::ffi::CString::new("transform").expect("CString::new failed");
         transform_loc = gl.GetUniformLocation(shader_program.id(), cname.as_ptr());
@@ -72,6 +89,9 @@ fn main() -> Result<(), io::Error> {
 
         let cname = std::ffi::CString::new("camera").expect("CString::new failed");
         camera_loc = gl.GetUniformLocation(shader_program.id(), cname.as_ptr());
+
+		let cname = std::ffi::CString::new("OurTexture").expect("CString::new failed");
+        gl.Uniform1i(gl.GetUniformLocation(shader_program.id(), cname.as_ptr()), 0);
     }
 
     let mut trans_x: f32 = 0.;
@@ -176,7 +196,9 @@ fn main() -> Result<(), io::Error> {
         }
         vao.bind();
         unsafe {
-            // bind texture
+			// bind texture
+			gl.ActiveTexture(gl::TEXTURE0);
+			texture.bind_cube();
 
             let mut model: Matrix<f32> = Matrix::mat4();
             model = model.rotate(turn_x, Vector::vec3(0., 1., 0.));
