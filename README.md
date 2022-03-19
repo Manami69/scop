@@ -11,3 +11,24 @@
  - Fragement Shader :
 ## BUGS
  - compilation error ```linking with `cc` failed: exit status: 1``` - [resolution](https://stackoverflow.com/questions/28124221/error-linking-with-cc-failed-exit-code-1)
+
+ colors ```
+ position = glGetAttribLocation(shaderProgram, 'position')
+color = glGetAttribLocation(shaderProgram, 'color')
+
+triangles = np.array(triangles, dtype=np.float32)
+colorAttrib = np.array(colorAttrib, dtype=np.float32)
+
+VBO = glGenBuffers(2)
+glBindBuffer(GL_ARRAY_BUFFER, VBO[0])
+glBufferData(GL_ARRAY_BUFFER, triangles.nbytes, triangles, GL_STATIC_DRAW)
+glBindBuffer(GL_ARRAY_BUFFER, VBO[1])
+glBufferData(GL_ARRAY_BUFFER, colorAttrib.nbytes, colorAttrib, GL_STATIC_DRAW)
+
+glBindBuffer(GL_ARRAY_BUFFER, VBO[0])
+glVertexAttribPointer(position, 3, GL_FLOAT, GL_FALSE, 0, None)
+glEnableVertexAttribArray(position)
+
+glBindBuffer(GL_ARRAY_BUFFER, VBO[1])
+glVertexAttribPointer(color, 3, GL_FLOAT, GL_FALSE, 0, None)
+glEnableVertexAttribArray(color)```

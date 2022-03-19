@@ -34,8 +34,6 @@ impl Vao {
 
     /// Attrib
     ///
-    /// * `buffer` : VBO
-    ///
     /// * `index` : location in vertex shader
     ///
     /// * `nb_comp` : the number of data to read in the buffer for this attribution
@@ -45,7 +43,7 @@ impl Vao {
     /// * `offset` : offset of the first component
     ///
     pub fn attrib(
-        &self, /*,buffer  : Vbo */
+        &self,
         index: gl::types::GLuint,
         nb_comp: gl::types::GLint,
         stride: usize,
