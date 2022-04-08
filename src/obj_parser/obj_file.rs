@@ -1,6 +1,8 @@
 use std::fs::File;
 use std::io::{prelude::*, BufReader};
+use crate::env::Color;
 use std::path::Path;
+use rand::Rng;
 /*
 # List of geometric vertices, with (x, y, z [,w]) coordinates, w is optional and defaults to 1.0.
 v 0.123 0.234 0.345 1.0
@@ -30,10 +32,11 @@ l 5 8 1 2 4 9
 */
 // https://forums.raywenderlich.com/t/face-normal-vs-vertex-normal/100928
 // https://stackoverflow.com/questions/23723993/converting-quadriladerals-in-an-obj-file-into-triangles
+// https://web.cse.ohio-state.edu/~shen.94/581/Site/Lab3_files/Labhelp_Obj_parser.htm
 const V: usize = 0;
 const VT: usize = 1;
 const VN: usize = 2;
-
+const COLORS: [f32; 9] = [0.667, 0.667, 0.224, 0.216, 0.545, 0.18, 0.173, 0.278, 0.439];
 // TODO: remplir par objet/groupe et non pas par fichier
 pub struct Objfile {
     pub v: Vec<Vec<f32>>,
@@ -42,6 +45,7 @@ pub struct Objfile {
     pub vp: Vec<f32>,
     pub f: Vec<Vec<usize>>,
     pub l: Vec<f32>,
+    //pub def_colors: Vec<>:
 }
 
 impl Objfile {
@@ -92,7 +96,7 @@ impl Objfile {
         match split[0] {
             "v" => self.parse_v(split),
             "vt" => self.parse_vt(split),
-            // "vn" => todo!(),
+            //"vn" => todo!(),
             // "vp" => todo!(),
             "f" => self.parse_f(split),
             // "l" => todo!(),
@@ -193,11 +197,28 @@ impl Objfile {
         if self.f[V].len() == 0 {
             return arr;
         }
-        self.f[V].iter().for_each(|index| {
-            self.v[*index - 1].iter().for_each(|vertice| {
-                arr.push(*vertice);
+        let mut face = 0;
+		
+		let mut rcolor = Color(0.0, 0.0, 0.0);
+		let mut rng = rand::thread_rng();
+
+        for (i, face_index) in self.f[V].iter().enumerate() {
+			if i % 3 == 0 {
+				rcolor = Color(rng.gen::<f32>(), rng.gen::<f32>(), rng.gen::<f32>());
+				face = (face + 1) % 3;
+			}
+			// push vertices
+            self.v[*face_index - 1].iter().for_each(|vertice| {
+                arr.push(*vertice); 
             });
-        });
+			// random color 
+            arr.push(rcolor.0);
+			arr.push(rcolor.1);
+			arr.push(rcolor.2);
+			// true color
+			// text coord
+			// normal coord
+		}
         arr
     }
 }

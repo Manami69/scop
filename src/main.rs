@@ -59,7 +59,8 @@ fn main() -> Result<(), io::Error> {
     vertices_buffer.bind();
     vertices_buffer.set_vertex(&vertices);
 
-    vao.attrib(0, 4, 4, 0);
+    vao.attrib(0, 4, 7, 0);
+    vao.attrib(1, 3, 7, 4);
 
     // set skybox
     let vert_skybox_shader = Shader::from_vert_source(
@@ -74,7 +75,8 @@ fn main() -> Result<(), io::Error> {
     )
     .unwrap();
 
-    let skybox_program = Program::from_shaders(&gl, &[vert_skybox_shader, frag_skybox_shader]).unwrap();
+    let skybox_program =
+        Program::from_shaders(&gl, &[vert_skybox_shader, frag_skybox_shader]).unwrap();
     skybox_program.set_used();
     let skybox_vao = Vao::new(&gl);
     skybox_vao.bind();
@@ -84,7 +86,7 @@ fn main() -> Result<(), io::Error> {
 
     skybox_vao.attrib(0, 3, 3, 0);
 
-/////
+    /////
     let perspective: Matrix<f32> = Matrix::projection(radian(60.), 1.77777776, 0.1, 100.);
 
     let transform_loc: gl::types::GLint;
@@ -103,9 +105,9 @@ fn main() -> Result<(), io::Error> {
         "skybox/front.jpg".into(),
         "skybox/back.jpg".into(),
     ];
-	//let faces = vec!["wall.jpg".to_string(); 6];
-	texture.load_cube(faces);
-	///////////
+    //let faces = vec!["wall.jpg".to_string(); 6];
+    texture.load_cube(faces);
+    ///////////
     unsafe {
         let cname = std::ffi::CString::new("transform").expect("CString::new failed");
         transform_loc = gl.GetUniformLocation(shader_program.id(), cname.as_ptr());
@@ -118,9 +120,11 @@ fn main() -> Result<(), io::Error> {
         camera_loc = gl.GetUniformLocation(shader_program.id(), cname.as_ptr());
         skybox_camera = gl.GetUniformLocation(skybox_program.id(), cname.as_ptr());
 
-
-		let cname = std::ffi::CString::new("skybox").expect("CString::new failed");
-        gl.Uniform1i(gl.GetUniformLocation(skybox_program.id(), cname.as_ptr()), 0);
+        let cname = std::ffi::CString::new("skybox").expect("CString::new failed");
+        gl.Uniform1i(
+            gl.GetUniformLocation(skybox_program.id(), cname.as_ptr()),
+            0,
+        );
     }
 
     let mut trans_x: f32 = 0.;
@@ -225,7 +229,6 @@ fn main() -> Result<(), io::Error> {
             }
         }
         unsafe {
-            
             let mut model: Matrix<f32> = Matrix::mat4();
             model = model.rotate(turn_x, Vector::vec3(0., 1., 0.));
             model = model.rotate(turn_y, Vector::vec3(1., 0., 0.));
@@ -237,9 +240,9 @@ fn main() -> Result<(), io::Error> {
             skybox_program.set_used();
             skybox_vao.bind();
             // position camera, position + vecteur front , up
-            let view= Matrix::view(
+            let view = Matrix::view(
                 Vector::vec3(0., 0., 0.),
-             Vector::vec3(0., 0., -1.),
+                Vector::vec3(0., 0., -1.),
                 Vector::vec3(0., 1., 0.),
             );
             gl.UniformMatrix4fv(skybox_persp, 1, gl::FALSE, perspective.as_ptr());
@@ -256,7 +259,7 @@ fn main() -> Result<(), io::Error> {
             );
             shader_program.set_used();
             vao.bind();
-            
+
             gl.UniformMatrix4fv(transform_loc, 1, gl::FALSE, model.as_ptr());
             gl.UniformMatrix4fv(persp_loc, 1, gl::FALSE, perspective.as_ptr());
             gl.UniformMatrix4fv(camera_loc, 1, gl::FALSE, view.as_ptr());
