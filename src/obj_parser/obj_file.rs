@@ -3,6 +3,8 @@ use std::io::{prelude::*, BufReader};
 use crate::env::Color;
 use std::path::Path;
 use rand::Rng;
+use std::collections::HashMap;
+use super::mtl_file::Mtl;
 /*
 # List of geometric vertices, with (x, y, z [,w]) coordinates, w is optional and defaults to 1.0.
 v 0.123 0.234 0.345 1.0
@@ -41,11 +43,12 @@ const COLORS: [f32; 9] = [0.667, 0.667, 0.224, 0.216, 0.545, 0.18, 0.173, 0.278,
 pub struct Objfile {
     pub v: Vec<Vec<f32>>,
     pub vt: Vec<Vec<f32>>,
-    pub vn: Vec<f32>,
-    pub vp: Vec<f32>,
+    pub vn: Vec<Vec<f32>>,
+    // pub vp: Vec<f32>,
     pub f: Vec<Vec<usize>>,
     pub l: Vec<f32>,
-    //pub def_colors: Vec<>:
+    pub tex: HashMap<String, Mtl>,
+	current_mat: Mtl,
 }
 
 impl Objfile {
@@ -54,9 +57,11 @@ impl Objfile {
             v: vec![],
             vt: vec![],
             vn: vec![],
-            vp: vec![],
+            // vp: vec![],
             f: vec![Vec::<usize>::new(); 3],
             l: vec![],
+			tex: HashMap::new(),
+			current_mat: Mtl::new_default(),
         }
     }
     pub fn read_file(&mut self, filename: &String) {
@@ -94,10 +99,12 @@ impl Objfile {
             return;
         }
         match split[0] {
+			"mtllib" => todo!(), // parse le fichier et rempli la hashmap de mtl
             "v" => self.parse_v(split),
             "vt" => self.parse_vt(split),
-            //"vn" => todo!(),
+            "vn" => self.parse_vn(split),
             // "vp" => todo!(),
+			"usemtl" => todo!(), // met le bon material dans current si pas trouve alors default value
             "f" => self.parse_f(split),
             // "l" => todo!(),
             _ => {}
@@ -108,7 +115,7 @@ impl Objfile {
         let len = split.len();
         let mut vec: Vec<f32> = Vec::<f32>::new();
         if len != 4 && len != 5 {
-            return;
+            panic!("unvalid obj file")
         }
         split[1..len].into_iter().for_each(|val| {
             match val.parse::<f32>() {
@@ -119,7 +126,7 @@ impl Objfile {
             };
         });
         if vec.len() != len - 1 {
-            return;
+            panic!("unvalid obj file")
         }
         if len == 4 {
             vec.push(1.0)
@@ -131,7 +138,7 @@ impl Objfile {
         let len = split.len();
         let mut vec: Vec<f32> = Vec::<f32>::new();
         if len > 4 && len < 2 {
-            return;
+            panic!("unvalid obj file")
         }
         split[1..len].into_iter().for_each(|val| {
             match val.parse::<f32>() {
@@ -142,12 +149,32 @@ impl Objfile {
             };
         });
         if vec.len() != len - 1 {
-            return;
+            panic!("unvalid obj file")
         }
         while vec.len() < 3 {
             vec.push(0.)
         }
         self.vt.push(vec);
+    }
+
+	fn parse_vn(&mut self, split: Vec<&str>) {
+        let len = split.len();
+        let mut vec: Vec<f32> = Vec::<f32>::new();
+        if len != 4 {
+            panic!("unvalid obj file")
+        }
+        split[1..len].into_iter().for_each(|val| {
+            match val.parse::<f32>() {
+                Err(_) => {}
+                Ok(num) => {
+                    vec.push(num);
+                }
+            };
+        });
+        if vec.len() != len - 1 {
+            panic!("unvalid obj file")
+        }
+        self.vn.push(vec);
     }
 
     fn parse_f(&mut self, split: Vec<&str>) {
