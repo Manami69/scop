@@ -1,6 +1,7 @@
 use crate::env::Color;
 use crate::render_gl::texture::Texture;
 // http://paulbourke.net/dataformats/mtl/
+#[derive(Clone)]
 pub struct Mtl {
 	pub name: String,
 	pub ambient_color: Color,

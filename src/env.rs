@@ -4,7 +4,7 @@ pub const HEIGHT: u32 = 720;
 pub const WIDTH: u32 = 1280;
 /// Window's name
 pub const NAME: &str = "scop";
-
+#[derive(Clone, Copy, PartialEq)]
 pub struct Color (pub f32, pub f32, pub f32);
 
 pub const SKYBOX_VERTICES: [f32; 108] = [

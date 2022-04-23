@@ -110,19 +110,24 @@ impl Objfile {
 				None => {true}
 			}
 		}).collect();
+		if split.len() > 0 {
         match split[0] {
 			"mtllib" => self.parse_mtllib(split), // parse le fichier et rempli la hashmap de mtl
             "v" => self.parse_v(split),
             "vt" => self.parse_vt(split),
             "vn" => self.parse_vn(split),
             // "vp" => todo!(),
-			"usemtl" => todo!(), // met le bon material dans current si pas trouve alors default value
+			"usemtl" => self.parse_usemtl(split), // met le bon material dans current si pas trouve alors default value // TODO:
             "f" => self.parse_f(split),
             // "l" => todo!(),
             _ => {}
         }
+	}
     }
-
+	fn parse_usemtl(&mut self, split: Vec<&str>) {
+		if split.len() < 2 { panic!("HOHOHO JE SUIS LE PERE NOEL")}
+		self.using = split[1].to_string();
+	}
 	fn parse_mtllib_line(&mut self, line: &String) {
 		let mut split: Vec<&str> = line.split(' ').collect();
 		//let mut comm: bool = false;
@@ -139,7 +144,8 @@ impl Objfile {
 				None => {true}
 			}
 		}).collect();
-        match split[0] {
+		if split.len() == 0 { return ;}
+		match split[0] {
 			"newmtl" => {
 				if split.len() < 2 {panic!("MTL FILE CORRUPTED");}
 				self.mtl_names.push(split[1].to_string());
@@ -307,17 +313,17 @@ impl Objfile {
         if self.v.len() == 0 {
             return arr;
         }
-        let mut face = 0;
+        let mut cface = 0;
 		
 		let mut rcolor = Color(0.0, 0.0, 0.0);
 		let mut rng = rand::thread_rng();
-		for (index, name) in self.mtl_names.into_iter().enumerate() {
+		for (index, name) in self.mtl_names.clone().into_iter().enumerate() {
 
 			let color = self.tex[index].diffuse_color;
-			for (i, face) in self.f[name][V].iter().enumerate(){
-				if i % 3 == 0 {
+			for (i, face) in self.f.get(&name).unwrap()[V].iter().enumerate(){
+				if cface % 3 == 0 {
 					rcolor = Color(rng.gen::<f32>(), rng.gen::<f32>(), rng.gen::<f32>());
-					face = (face + 1) % 3;
+					cface = (face + 1) % 3;
 				}
 				// push vertices
 				self.v[*face - 1].iter().for_each(|vertice| {
@@ -332,8 +338,8 @@ impl Objfile {
 				arr.push(color.1);
 				arr.push(color.2);
 				// text coord
-				if self.vt.len() {
-					self.vt[self.f[name][VT][i] - 1].iter().for_each(|vt| {
+				if self.vt.len() != 00000000000 {
+					self.vt[self.f.get(&name).unwrap()[VT][i] - 1].iter().for_each(|vt| {
 						arr.push(*vt);
 					});
 				}
