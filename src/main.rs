@@ -18,20 +18,21 @@ fn main() -> Result<(), io::Error> {
     if args.len() != 2 {
         return Ok(());
     }
-    let mut obj = Objfile::new();
-    obj.read_file(&args[1]);
     ////////////////////////////////////////////////////////
+	
     let (mut event_pump, window, video_subsystem) = Window::new();
     let _gl_context = window.gl_create_context().unwrap();
     let gl = gl::Gl::load_with(|s| {
-        video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void
+		video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void
     });
-
+	
     unsafe {
-        gl.Viewport(0, 0, 1280, 720); // set viewport
+		gl.Viewport(0, 0, 1280, 720); // set viewport
         gl.ClearColor(0.3, 0.3, 0.5, 1.0);
     }
-
+	let mut obj = Objfile::new(&gl);
+	obj.read_file(&args[1]);
+	
     let vert_shader = Shader::from_vert_source(
         &gl,
         &CString::new(include_str!("shaders/triangle.vert")).unwrap(),
@@ -271,6 +272,6 @@ fn main() -> Result<(), io::Error> {
         }
         window.gl_swap_window();
         // render window contents here
-    }
+    }*/
     Ok(())
 }

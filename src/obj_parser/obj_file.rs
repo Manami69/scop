@@ -5,6 +5,7 @@ use std::path::Path;
 use rand::Rng;
 use std::collections::HashMap;
 use super::mtl_file::Mtl;
+use crate::render_gl::texture::Texture;
 /*
 # List of geometric vertices, with (x, y, z [,w]) coordinates, w is optional and defaults to 1.0.
 v 0.123 0.234 0.345 1.0
@@ -41,27 +42,31 @@ const VN: usize = 2;
 const COLORS: [f32; 9] = [0.667, 0.667, 0.224, 0.216, 0.545, 0.18, 0.173, 0.278, 0.439];
 // TODO: remplir par objet/groupe et non pas par fichier
 pub struct Objfile {
+	gl: &gl::Gl,
     pub v: Vec<Vec<f32>>,
     pub vt: Vec<Vec<f32>>,
     pub vn: Vec<Vec<f32>>,
     // pub vp: Vec<f32>,
-    pub f: Vec<Vec<usize>>,
+    pub f: HashMap<String, Vec<Vec<usize>>>,
     pub l: Vec<f32>,
     pub tex: HashMap<String, Mtl>,
-	current_mat: Mtl,
+	pub mtl_names: Vec<String>,
+	pub using: String,
 }
 
 impl Objfile {
-    pub fn new() -> Self {
+    pub fn new( gl: &gl::GL) -> Self {
         Self {
+			gl: gl,
             v: vec![],
             vt: vec![],
             vn: vec![],
             // vp: vec![],
-            f: vec![Vec::<usize>::new(); 3],
+            f: HashMap::new(),
             l: vec![],
 			tex: HashMap::new(),
-			current_mat: Mtl::new_default(),
+			mtl_names: vec![],
+			using: String::new(),
         }
     }
     pub fn read_file(&mut self, filename: &String) {
@@ -83,6 +88,7 @@ impl Objfile {
             }
             Ok(ok) => ok,
         };
+
         let reader = BufReader::new(file);
         for line in reader.lines() {
             self.parse_line(&line.unwrap());
@@ -91,6 +97,7 @@ impl Objfile {
     }
     fn parse_line(&mut self, line: &String) {
         let mut split: Vec<&str> = line.split(' ').collect();
+		//let mut comm: bool = false;
         split = split
             .iter()
             .filter_map(|s| (!s.is_empty()).then(|| *s))
@@ -98,8 +105,14 @@ impl Objfile {
         if split.is_empty() {
             return;
         }
+		split = split.into_iter().take_while(|s| {
+			match s.find('#') {
+				Some(_) => {false},
+				None => {true}
+			}
+		}).collect();
         match split[0] {
-			"mtllib" => todo!(), // parse le fichier et rempli la hashmap de mtl
+			"mtllib" => parse_mtllib(split), // parse le fichier et rempli la hashmap de mtl
             "v" => self.parse_v(split),
             "vt" => self.parse_vt(split),
             "vn" => self.parse_vn(split),
@@ -110,6 +123,72 @@ impl Objfile {
             _ => {}
         }
     }
+
+	fn parse_mtllib_line(&mut self, line: &String) {
+		let mut split: Vec<&str> = line.split(' ').collect();
+		//let mut comm: bool = false;
+        split = split
+            .iter()
+            .filter_map(|s| (!s.is_empty()).then(|| *s))
+            .collect();
+        if split.is_empty() {
+            return;
+        }
+		split = split.into_iter().take_while(|s| {
+			match s.find('#') {
+				Some(_) => {false},
+				None => {true}
+			}
+		}).collect();
+        match split[0] {
+			"newmtl" => {
+				if split.len() < 2 {panic!("MTL FILE CORRUPTED");}
+				mtl_names.push(split[1]);
+				tex.insert(split[1], Mtl::new_default());
+			},
+			"Kd" => {
+				if split.len() < 4 {panic!("MTL FILE CORRUPTED");}
+				let l = mtl_names.len();
+				if !l {panic!("MTL FILE CORRUPTED")}
+
+				tex[l - 1].diffuse_color = Color(split[1].parse::<f32>.unwrap(), split[2].parse::<f32>.unwrap(), split[3].parse::<f32>.unwrap());
+			},
+			"map_Ka" => {
+				if split.len() < 2 {panic!("MTL FILE CORRUPTED")}
+				let l = mtl_names.len();
+				if !l {panic!("MTL FILE CORRUPTED")}
+				tex[l - 1].text_map = Some()
+			},
+            _ => {}
+        }
+	}
+	fn parse_mtllib(&mut self, split: Vec<&str>) {
+		if split.len() < 2 { eprintln!("CANNOT FIND MTL FILE"); return; }
+		let filename = split[1];
+		match Path::new(&filename).extension() {
+            None => {
+                eprintln!("MTL FILE CORRUPTED");
+            }
+            Some(ext) => {
+                assert_eq!(
+                    "mtl", ext,
+                    "testing filename extension : must be mtl found {:?}",
+                    ext
+                );
+            }
+        };
+		let file = match File::open(filename) {
+            Err(err) => {
+                eprintln!("Couldn't open mtl file : {}", err);
+				return;
+            }
+            Ok(ok) => ok,
+        };
+		let reader = BufReader::new(file);
+        for line in reader.lines() {
+			match line
+        }
+	}
 
     fn parse_v(&mut self, split: Vec<&str>) {
         let len = split.len();
@@ -178,6 +257,10 @@ impl Objfile {
     }
 
     fn parse_f(&mut self, split: Vec<&str>) {
+		if !self.f.contains_key(&self.using) {
+			self.f.insert(&self.using, vec![Vec::<usize>::new(); 3]);
+		}
+
         let len = split.len();
         let mut vec = vec![Vec::<usize>::new(); 3];
         if len < 4 {
@@ -213,7 +296,7 @@ impl Objfile {
             // collec.iter().for_each(|val| self.f.push(val.clone()));
         } else {
             for (i, val) in vec.iter().enumerate() {
-                val.iter().for_each(|v| self.f[i].push(*v))
+                val.iter().for_each(|v| self.f[&self.using][i].push(*v))
             }
         }
     }
@@ -247,5 +330,5 @@ impl Objfile {
 			// normal coord
 		}
         arr
-    }
+    }*/
 }
