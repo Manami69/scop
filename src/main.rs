@@ -30,7 +30,7 @@ fn main() -> Result<(), io::Error> {
 		gl.Viewport(0, 0, 1280, 720); // set viewport
         gl.ClearColor(0.3, 0.3, 0.5, 1.0);
     }
-	let mut obj = Objfile::new(&gl);
+	let mut obj = Objfile::new();
 	obj.read_file(&args[1]);
 	
     let vert_shader = Shader::from_vert_source(
@@ -272,6 +272,6 @@ fn main() -> Result<(), io::Error> {
         }
         window.gl_swap_window();
         // render window contents here
-    }*/
+    }
     Ok(())
 }

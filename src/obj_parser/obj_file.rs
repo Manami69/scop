@@ -6,6 +6,7 @@ use rand::Rng;
 use std::collections::HashMap;
 use super::mtl_file::Mtl;
 use crate::render_gl::texture::Texture;
+//use itertools::izip; //     for (x, y, z) in izip!(&a, &b, &c) {
 /*
 # List of geometric vertices, with (x, y, z [,w]) coordinates, w is optional and defaults to 1.0.
 v 0.123 0.234 0.345 1.0
@@ -42,29 +43,27 @@ const VN: usize = 2;
 const COLORS: [f32; 9] = [0.667, 0.667, 0.224, 0.216, 0.545, 0.18, 0.173, 0.278, 0.439];
 // TODO: remplir par objet/groupe et non pas par fichier
 pub struct Objfile {
-	gl: &gl::Gl,
     pub v: Vec<Vec<f32>>,
     pub vt: Vec<Vec<f32>>,
     pub vn: Vec<Vec<f32>>,
     // pub vp: Vec<f32>,
     pub f: HashMap<String, Vec<Vec<usize>>>,
     pub l: Vec<f32>,
-    pub tex: HashMap<String, Mtl>,
+    pub tex: Vec<Mtl>,
 	pub mtl_names: Vec<String>,
 	pub using: String,
 }
 
 impl Objfile {
-    pub fn new( gl: &gl::GL) -> Self {
+    pub fn new() -> Self {
         Self {
-			gl: gl,
             v: vec![],
             vt: vec![],
             vn: vec![],
             // vp: vec![],
             f: HashMap::new(),
             l: vec![],
-			tex: HashMap::new(),
+			tex: vec![],
 			mtl_names: vec![],
 			using: String::new(),
         }
@@ -112,7 +111,7 @@ impl Objfile {
 			}
 		}).collect();
         match split[0] {
-			"mtllib" => parse_mtllib(split), // parse le fichier et rempli la hashmap de mtl
+			"mtllib" => self.parse_mtllib(split), // parse le fichier et rempli la hashmap de mtl
             "v" => self.parse_v(split),
             "vt" => self.parse_vt(split),
             "vn" => self.parse_vn(split),
@@ -143,25 +142,26 @@ impl Objfile {
         match split[0] {
 			"newmtl" => {
 				if split.len() < 2 {panic!("MTL FILE CORRUPTED");}
-				mtl_names.push(split[1]);
-				tex.insert(split[1], Mtl::new_default());
+				self.mtl_names.push(split[1].to_string());
+				self.tex.push(Mtl::new(split[1]));
 			},
 			"Kd" => {
 				if split.len() < 4 {panic!("MTL FILE CORRUPTED");}
-				let l = mtl_names.len();
-				if !l {panic!("MTL FILE CORRUPTED")}
+				let l = self.mtl_names.len();
+				if l == 0 {panic!("MTL FILE CORRUPTED")}
 
-				tex[l - 1].diffuse_color = Color(split[1].parse::<f32>.unwrap(), split[2].parse::<f32>.unwrap(), split[3].parse::<f32>.unwrap());
+				self.tex[l - 1].diffuse_color = Color(split[1].parse::<f32>().unwrap(), split[2].parse::<f32>().unwrap(), split[3].parse::<f32>().unwrap());
 			},
 			"map_Ka" => {
 				if split.len() < 2 {panic!("MTL FILE CORRUPTED")}
-				let l = mtl_names.len();
-				if !l {panic!("MTL FILE CORRUPTED")}
-				tex[l - 1].text_map = Some()
+				let l = self.mtl_names.len();
+				if l == 0 {panic!("MTL FILE CORRUPTED")}
+				self.tex[l - 1 ].text_map = Some(split[1].to_string());
 			},
             _ => {}
-        }
+        };
 	}
+
 	fn parse_mtllib(&mut self, split: Vec<&str>) {
 		if split.len() < 2 { eprintln!("CANNOT FIND MTL FILE"); return; }
 		let filename = split[1];
@@ -186,7 +186,7 @@ impl Objfile {
         };
 		let reader = BufReader::new(file);
         for line in reader.lines() {
-			match line
+			self.parse_mtllib_line(&line.unwrap())
         }
 	}
 
@@ -258,7 +258,7 @@ impl Objfile {
 
     fn parse_f(&mut self, split: Vec<&str>) {
 		if !self.f.contains_key(&self.using) {
-			self.f.insert(&self.using, vec![Vec::<usize>::new(); 3]);
+			self.f.insert(self.using.clone(), vec![Vec::<usize>::new(); 3]);
 		}
 
         let len = split.len();
@@ -286,9 +286,9 @@ impl Objfile {
             for j in 0..veclen - 2 {
                 for (i, val) in vec.iter().enumerate() {
                     if val.len() != 0 {
-                        self.f[i].push(val[0]);
-                        self.f[i].push(val[j + 1]);
-                        self.f[i].push(val[j + 2]);
+                        self.f.get_mut(&self.using).unwrap()[i].push(val[0]);
+                        self.f.get_mut(&self.using).unwrap()[i].push(val[j + 1]);
+                        self.f.get_mut(&self.using).unwrap()[i].push(val[j + 2]);
                     }
                 }
                 //     collec.push(vec![vec[0], vec[i + 1], vec[i + 2]])
@@ -296,7 +296,7 @@ impl Objfile {
             // collec.iter().for_each(|val| self.f.push(val.clone()));
         } else {
             for (i, val) in vec.iter().enumerate() {
-                val.iter().for_each(|v| self.f[&self.using][i].push(*v))
+                val.iter().for_each(|v| self.f.get_mut(&self.using).unwrap()[i].push(*v))
             }
         }
     }
@@ -304,31 +304,43 @@ impl Objfile {
     pub fn get_v(&self) -> Vec<f32> {
         let mut arr: Vec<f32> = Vec::new();
         // println!("{:?}", self.f);
-        if self.f[V].len() == 0 {
+        if self.v.len() == 0 {
             return arr;
         }
         let mut face = 0;
 		
 		let mut rcolor = Color(0.0, 0.0, 0.0);
 		let mut rng = rand::thread_rng();
+		for (index, name) in self.mtl_names.into_iter().enumerate() {
 
-        for (i, face_index) in self.f[V].iter().enumerate() {
-			if i % 3 == 0 {
-				rcolor = Color(rng.gen::<f32>(), rng.gen::<f32>(), rng.gen::<f32>());
-				face = (face + 1) % 3;
+			let color = self.tex[index].diffuse_color;
+			for (i, face) in self.f[name][V].iter().enumerate(){
+				if i % 3 == 0 {
+					rcolor = Color(rng.gen::<f32>(), rng.gen::<f32>(), rng.gen::<f32>());
+					face = (face + 1) % 3;
+				}
+				// push vertices
+				self.v[*face - 1].iter().for_each(|vertice| {
+					arr.push(*vertice); 
+				});
+				// random color 
+				arr.push(rcolor.0);
+				arr.push(rcolor.1);
+				arr.push(rcolor.2);
+				// true color
+				arr.push(color.0);
+				arr.push(color.1);
+				arr.push(color.2);
+				// text coord
+				if self.vt.len() {
+					self.vt[self.f[name][VT][i] - 1].iter().for_each(|vt| {
+						arr.push(*vt);
+					});
+				}
+				// normal coord
+
 			}
-			// push vertices
-            self.v[*face_index - 1].iter().for_each(|vertice| {
-                arr.push(*vertice); 
-            });
-			// random color 
-            arr.push(rcolor.0);
-			arr.push(rcolor.1);
-			arr.push(rcolor.2);
-			// true color
-			// text coord
-			// normal coord
 		}
         arr
-    }*/
+    }
 }

@@ -8,7 +8,10 @@ pub struct Mtl {
 	pub specular_color: Color,
 	pub illum : u32,
 	pub shininess: f32,
-	pub text_map: Option<Texture>,
+	pub text_map: Option<String>,
+	/// offset for drawarray
+	pub start: usize,
+	pub end: usize,
 }
 
 impl Mtl {
@@ -21,6 +24,22 @@ impl Mtl {
 			illum: 0,
 			shininess: 0.,
 			text_map: None,
+			start: 0,
+			end: 0 
+		}
+	}
+
+	pub fn new(name: &str) -> Self {
+		Self {
+			name: name.to_string(),
+			ambient_color: Color(0., 0., 0.),
+			diffuse_color: Color(0., 0., 0.),
+			specular_color: Color(0., 0., 0.),
+			illum: 0,
+			shininess: 0.,
+			text_map: None,
+			start: 0,
+			end: 0 
 		}
 	}
 }
