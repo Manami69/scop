@@ -60,8 +60,10 @@ fn main() -> Result<(), io::Error> {
     vertices_buffer.bind();
     vertices_buffer.set_vertex(&vertices);
 
-    vao.attrib(0, 4, 7, 0);
-    vao.attrib(1, 3, 7, 4);
+    vao.attrib(0, 4, 12, 0); // vertices
+    vao.attrib(1, 3, 12, 4); // rand color
+	vao.attrib(2, 3, 12, 7); // default color
+	vao.attrib(3, 2, 12, 10); // texture mapping
 
     // set skybox
     let vert_skybox_shader = Shader::from_vert_source(
@@ -93,21 +95,21 @@ fn main() -> Result<(), io::Error> {
     let transform_loc: gl::types::GLint;
     let persp_loc: gl::types::GLint;
     let camera_loc: gl::types::GLint;
-    let skybox_persp: gl::types::GLint;
-    let skybox_camera: gl::types::GLint;
+    // let skybox_persp: gl::types::GLint;
+    // let skybox_camera: gl::types::GLint;
 
     // TEXTURES MAPPING CUBE
-    let texture: Texture = Texture::new_cube(&gl);
-    let faces = vec![
-        "skybox/right.jpg".to_string(),
-        "skybox/left.jpg".into(),
-        "skybox/top.jpg".into(),
-        "skybox/bottom.jpg".into(),
-        "skybox/front.jpg".into(),
-        "skybox/back.jpg".into(),
-    ];
-    //let faces = vec!["wall.jpg".to_string(); 6];
-    texture.load_cube(faces);
+    // let texture: Texture = Texture::new_cube(&gl);
+    // let faces = vec![
+    //     "skybox/right.jpg".to_string(),
+    //     "skybox/left.jpg".into(),
+    //     "skybox/top.jpg".into(),
+    //     "skybox/bottom.jpg".into(),
+    //     "skybox/front.jpg".into(),
+    //     "skybox/back.jpg".into(),
+    // ];
+    // //let faces = vec!["wall.jpg".to_string(); 6];
+    // texture.load_cube(faces);
     ///////////
     unsafe {
         let cname = std::ffi::CString::new("transform").expect("CString::new failed");
@@ -115,17 +117,17 @@ fn main() -> Result<(), io::Error> {
 
         let cname = std::ffi::CString::new("perspective").expect("CString::new failed");
         persp_loc = gl.GetUniformLocation(shader_program.id(), cname.as_ptr());
-        skybox_persp = gl.GetUniformLocation(skybox_program.id(), cname.as_ptr());
+        // skybox_persp = gl.GetUniformLocation(skybox_program.id(), cname.as_ptr());
 
         let cname = std::ffi::CString::new("camera").expect("CString::new failed");
         camera_loc = gl.GetUniformLocation(shader_program.id(), cname.as_ptr());
-        skybox_camera = gl.GetUniformLocation(skybox_program.id(), cname.as_ptr());
+        // skybox_camera = gl.GetUniformLocation(skybox_program.id(), cname.as_ptr());
 
-        let cname = std::ffi::CString::new("skybox").expect("CString::new failed");
-        gl.Uniform1i(
-            gl.GetUniformLocation(skybox_program.id(), cname.as_ptr()),
-            0,
-        );
+        // let cname = std::ffi::CString::new("skybox").expect("CString::new failed");
+        // gl.Uniform1i(
+        //     gl.GetUniformLocation(skybox_program.id(), cname.as_ptr()),
+        //     0,
+        // );
     }
 
     let mut trans_x: f32 = 0.;
@@ -237,21 +239,21 @@ fn main() -> Result<(), io::Error> {
 
             model = model.translate(trans_x, trans_y, trans_z);
             // SKYBOX
-            gl.DepthMask(gl::FALSE);
-            skybox_program.set_used();
-            skybox_vao.bind();
+            // gl.DepthMask(gl::FALSE);
+            // skybox_program.set_used();
+            // skybox_vao.bind();
             // position camera, position + vecteur front , up
             let view = Matrix::view(
                 Vector::vec3(0., 0., 0.),
                 Vector::vec3(0., 0., -1.),
                 Vector::vec3(0., 1., 0.),
             );
-            gl.UniformMatrix4fv(skybox_persp, 1, gl::FALSE, perspective.as_ptr());
-            gl.UniformMatrix4fv(skybox_camera, 1, gl::FALSE, view.as_ptr());
+            // gl.UniformMatrix4fv(skybox_persp, 1, gl::FALSE, perspective.as_ptr());
+            // gl.UniformMatrix4fv(skybox_camera, 1, gl::FALSE, view.as_ptr());
             // bind texture
-            gl.ActiveTexture(gl::TEXTURE0);
-            texture.bind_cube();
-            gl.DrawArrays(gl::TRIANGLES, 0, 36);
+            // gl.ActiveTexture(gl::TEXTURE0);
+            // texture.bind_cube();
+            // gl.DrawArrays(gl::TRIANGLES, 0, 36);
             gl.DepthMask(gl::TRUE);
             let view: Matrix<f32> = Matrix::view(
                 Vector::vec3(0., 0., cam_z),

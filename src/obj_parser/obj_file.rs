@@ -126,7 +126,9 @@ impl Objfile {
     }
 	fn parse_usemtl(&mut self, split: Vec<&str>) {
 		if split.len() < 2 { panic!("HOHOHO JE SUIS LE PERE NOEL")}
-		self.using = split[1].to_string();
+		if self.mtl_names.clone().contains(&split[1].to_string()) {
+			self.using = split[1].to_string();
+		}
 	}
 	fn parse_mtllib_line(&mut self, line: &String) {
 		let mut split: Vec<&str> = line.split(' ').collect();
@@ -307,7 +309,7 @@ impl Objfile {
         }
     }
 
-    pub fn get_v(&self) -> Vec<f32> {
+    pub fn get_v(&mut self) -> Vec<f32> {
         let mut arr: Vec<f32> = Vec::new();
         // println!("{:?}", self.f);
         if self.v.len() == 0 {
@@ -317,14 +319,20 @@ impl Objfile {
 		
 		let mut rcolor = Color(0.0, 0.0, 0.0);
 		let mut rng = rand::thread_rng();
+		if self.mtl_names.is_empty() {
+			self.mtl_names.push(String::new());
+			self.tex.push(Mtl::new_default());
+			//eprintln!("POPO");
+		}
 		for (index, name) in self.mtl_names.clone().into_iter().enumerate() {
-
+			//eprintln!("POUET {:?}", self.f);
 			let color = self.tex[index].diffuse_color;
 			for (i, face) in self.f.get(&name).unwrap()[V].iter().enumerate(){
 				if cface % 3 == 0 {
+					cface = 0;
 					rcolor = Color(rng.gen::<f32>(), rng.gen::<f32>(), rng.gen::<f32>());
-					cface = (face + 1) % 3;
 				}
+				cface += 1;
 				// push vertices
 				self.v[*face - 1].iter().for_each(|vertice| {
 					arr.push(*vertice); 
@@ -338,10 +346,14 @@ impl Objfile {
 				arr.push(color.1);
 				arr.push(color.2);
 				// text coord
-				if self.vt.len() != 00000000000 {
-					self.vt[self.f.get(&name).unwrap()[VT][i] - 1].iter().for_each(|vt| {
-						arr.push(*vt);
-					});
+				//eprintln!("{}/{} self.vt {:?}", i, self.vt.len(),self.vt[649], self.f.get(&name).unwrap()[VT][i]);
+				if !self.vt.is_empty() && i < self.f.get(&name).unwrap()[VT].len() {
+					arr.push(self.vt[self.f.get(&name).unwrap()[VT][i] - 1][0]);
+					arr.push(self.vt[self.f.get(&name).unwrap()[VT][i] - 1][1]);
+				}
+				else { // if no texture do it TODO:
+					arr.push(0.);
+					arr.push(0.);
 				}
 				// normal coord
 
