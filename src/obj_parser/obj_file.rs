@@ -185,7 +185,7 @@ impl Objfile {
                 );
             }
         };
-		let file = match File::open(filename) {
+		let file = match File::open(format!("{}{}", "Ressources/", filename)) {
             Err(err) => {
                 eprintln!("Couldn't open mtl file : {}", err);
 				return;
@@ -351,7 +351,7 @@ impl Objfile {
 					arr.push(self.vt[self.f.get(&name).unwrap()[VT][i] - 1][0]);
 					arr.push(self.vt[self.f.get(&name).unwrap()[VT][i] - 1][1]);
 				}
-				else { // if no texture do it TODO:
+				else { // if no texture do it // TODO:
 					arr.push(0.);
 					arr.push(0.);
 				}

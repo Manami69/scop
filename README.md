@@ -11,3 +11,8 @@
  - Fragement Shader :
 ## BUGS
  - compilation error ```linking with `cc` failed: exit status: 1``` - [resolution](https://stackoverflow.com/questions/28124221/error-linking-with-cc-failed-exit-code-1)
+
+## TODO
+
+ - [ ] mettre les drawarray par texture (start end dans mtl)
+ - [ ] calculer le centre de l'objet pour le faire tourner en son centre
