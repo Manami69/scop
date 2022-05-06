@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::io::{prelude::*, BufReader};
-use crate::env::Color;
+use crate::env::{Color, Point3d};
+use crate::mathlib::operations::other::lerp;
 use std::path::Path;
 use rand::Rng;
 use std::collections::HashMap;
@@ -40,7 +41,7 @@ l 5 8 1 2 4 9
 const V: usize = 0;
 const VT: usize = 1;
 const VN: usize = 2;
-const COLORS: [f32; 9] = [0.667, 0.667, 0.224, 0.216, 0.545, 0.18, 0.173, 0.278, 0.439];
+
 // TODO: remplir par objet/groupe et non pas par fichier
 pub struct Objfile {
     pub v: Vec<Vec<f32>>,
@@ -52,6 +53,9 @@ pub struct Objfile {
     pub tex: Vec<Mtl>,
 	pub mtl_names: Vec<String>,
 	pub using: String,
+	pub min: Point3d,
+	pub max: Point3d,
+	pub mid : Point3d,
 }
 
 impl Objfile {
@@ -66,6 +70,9 @@ impl Objfile {
 			tex: vec![],
 			mtl_names: vec![],
 			using: String::new(),
+			min: Point3d{x:f32::MAX, y:f32::MAX, z:f32::MAX},
+			max: Point3d{x:f32::MIN, y:f32::MIN, z:f32::MIN},
+			mid: Point3d{x:0., y:0., z:0.},
         }
     }
     pub fn read_file(&mut self, filename: &String) {
@@ -204,14 +211,24 @@ impl Objfile {
         if len != 4 && len != 5 {
             panic!("unvalid obj file")
         }
-        split[1..len].into_iter().for_each(|val| {
+        for (i, val) in split[1..len].into_iter().enumerate(){
             match val.parse::<f32>() {
                 Err(_) => {}
                 Ok(num) => {
+					if i == 0 {
+						if num < self.min.x { self.min.x = num}
+						if num > self.max.x { self.max.x = num}
+					} else if i == 1 {
+						if num < self.min.y { self.min.y = num}
+						if num > self.max.y { self.max.y = num}
+					} else if i == 2 {
+						if num < self.min.z { self.min.z = num}
+						if num > self.max.z { self.max.z = num}
+					}
                     vec.push(num);
                 }
             };
-        });
+        }
         if vec.len() != len - 1 {
             panic!("unvalid obj file")
         }
@@ -359,6 +376,9 @@ impl Objfile {
 
 			}
 		}
+		self.mid.x =  lerp(self.min.x, self.max.x, 0.5);
+		self.mid.y =  lerp(self.min.y, self.max.y, 0.5);
+		self.mid.z =  lerp(self.min.z, self.max.z, 0.5);
         arr
     }
 }

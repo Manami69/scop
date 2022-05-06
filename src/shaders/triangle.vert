@@ -10,11 +10,17 @@ uniform mat4 transform;
 uniform mat4 perspective;
 uniform mat4 camera;
 
+out vec4 baseColor;
+out vec4 randColor;
+out vec2 pos;
 
 void main()
 {
-    gl_Position = perspective * camera* transform  * model;
-    vertexColor = vec4(aRandColor , 1.0); // set the output variable to a dark-red color
+    gl_Position = perspective * camera * transform  * model;
+	baseColor = vec4(aColor , 1.0);
+	randColor = vec4(aRandColor , 1.0);
+	pos = model.xy;
+
     //TexCoord = aTexCoord;
 	//TexDir = Position.xyz;
 }

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::ffi::CString;
 pub mod mathlib;
 use mathlib::classes::{matrix::Matrix, vector::Vector};
@@ -15,7 +16,7 @@ use obj_parser::obj_file::Objfile;
 fn main() -> Result<(), io::Error> {
     // args
     let args: Vec<String> = std::env::args().collect();
-    if args.len() != 2 {
+    if args.len() < 2 {
         return Ok(());
     }
     ////////////////////////////////////////////////////////
@@ -66,28 +67,28 @@ fn main() -> Result<(), io::Error> {
 	vao.attrib(3, 2, 12, 10); // texture mapping
 
     // set skybox
-    let vert_skybox_shader = Shader::from_vert_source(
-        &gl,
-        &CString::new(include_str!("shaders/skybox.vert")).unwrap(),
-    )
-    .unwrap();
+    // let vert_skybox_shader = Shader::from_vert_source(
+    //     &gl,
+    //     &CString::new(include_str!("shaders/skybox.vert")).unwrap(),
+    // )
+    // .unwrap();
 
-    let frag_skybox_shader = Shader::from_frag_source(
-        &gl,
-        &CString::new(include_str!("shaders/skybox.frag")).unwrap(),
-    )
-    .unwrap();
+    // let frag_skybox_shader = Shader::from_frag_source(
+    //     &gl,
+    //     &CString::new(include_str!("shaders/skybox.frag")).unwrap(),
+    // )
+    // .unwrap();
 
-    let skybox_program =
-        Program::from_shaders(&gl, &[vert_skybox_shader, frag_skybox_shader]).unwrap();
-    skybox_program.set_used();
-    let skybox_vao = Vao::new(&gl);
-    skybox_vao.bind();
-    let skybox_buffer = Vbo::new(&gl);
-    skybox_buffer.bind();
-    skybox_buffer.set_vertex(&Vec::from(env::SKYBOX_VERTICES));
+    // let skybox_program =
+    //     Program::from_shaders(&gl, &[vert_skybox_shader, frag_skybox_shader]).unwrap();
+    // skybox_program.set_used();
+    // let skybox_vao = Vao::new(&gl);
+    // skybox_vao.bind();
+    // let skybox_buffer = Vbo::new(&gl);
+    // skybox_buffer.bind();
+    // skybox_buffer.set_vertex(&Vec::from(env::SKYBOX_VERTICES));
 
-    skybox_vao.attrib(0, 3, 3, 0);
+    // skybox_vao.attrib(0, 3, 3, 0);
 
     /////
     let perspective: Matrix<f32> = Matrix::projection(radian(60.), 1.77777776, 0.1, 100.);
@@ -95,6 +96,13 @@ fn main() -> Result<(), io::Error> {
     let transform_loc: gl::types::GLint;
     let persp_loc: gl::types::GLint;
     let camera_loc: gl::types::GLint;
+	let text_index: gl::types::GLint; // index de la texture sur laquelle on est
+	let opacity: gl::types::GLint; // opacity of the next texture
+
+	let uniform_pos_text: gl::types::GLint;
+
+	let pos_text: Texture = Texture::new(&gl);
+	pos_text.load("Ressources/Textures/large_qpupier.png".to_string());
     // let skybox_persp: gl::types::GLint;
     // let skybox_camera: gl::types::GLint;
 
@@ -128,18 +136,56 @@ fn main() -> Result<(), io::Error> {
         //     gl.GetUniformLocation(skybox_program.id(), cname.as_ptr()),
         //     0,
         // );
+		let cname = std::ffi::CString::new("texture_position").expect("CString::new failed");
+        uniform_pos_text = gl.GetUniformLocation(shader_program.id(), cname.as_ptr());
+		let cname = std::ffi::CString::new("indextext").expect("CString::new failed");
+        text_index = gl.GetUniformLocation(shader_program.id(), cname.as_ptr());
+		let cname = std::ffi::CString::new("opacity").expect("CString::new failed");
+        opacity = gl.GetUniformLocation(shader_program.id(), cname.as_ptr());
     }
 
-    let mut trans_x: f32 = 0.;
-    let mut trans_y: f32 = 0.;
-    let mut trans_z: f32 = 0.;
-    let mut cam_z: f32 = 0.;
-    let mut turn_x: f32 = 0.;
-    let mut turn_y = 0.;
-    let mut turn_z = 0.;
-    let mut poly: bool = false;
-    let mut pas: f32 = 1.;
+	let mut m: env::ModelEvent = env::ModelEvent::new();
+
     'main: loop {
+
+
+		if m.keys.get("W").is_some() {
+			m.trans.z += 0.1;
+		}
+		if m.keys.get("S").is_some() {
+			m.trans.z -= 0.1;
+		}
+		if m.keys.get("A").is_some() {
+			m.trans.x += 0.1;
+		}
+		if m.keys.get("D").is_some() {
+			m.trans.x -= 0.1;
+		}
+		if m.keys.get("F").is_some() {
+			m.trans.y -= 0.1;
+		}
+		if m.keys.get("R").is_some() {
+			m.trans.y -= 0.1;
+		}
+		if m.keys.get("Up").is_some() {
+			m.turn.y += 0.1;
+		}
+		if m.keys.get("Down").is_some() {
+			m.turn.y -= 0.1;
+		}
+		if m.keys.get("Right").is_some() {
+			m.turn.x += 0.1;
+		}
+		if m.keys.get("Left").is_some() {
+			m.turn.x -= 0.1;
+		}
+		if m.keys.get("Q").is_some() {
+			m.turn.z -= 0.1;
+		}
+		if m.keys.get("E").is_some() {
+			m.turn.z += 0.1;
+		}
+
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit { .. }
@@ -148,84 +194,39 @@ fn main() -> Result<(), io::Error> {
                     ..
                 } => break 'main,
                 // ZOOM CAMERA
-                Event::MouseWheel { y: num, .. } => cam_z -= num as f32,
+                Event::MouseWheel { y: num, .. } => m.cam_z -= num as f32,
                 // TRANSLATION COMMAND
-                Event::KeyDown {
-                    keycode: Some(Keycode::W),
-                    ..
-                } => trans_y += pas,
-                Event::KeyDown {
-                    keycode: Some(Keycode::S),
-                    ..
-                } => trans_y += -pas,
-                Event::KeyDown {
-                    keycode: Some(Keycode::A),
-                    ..
-                } => trans_x += -pas,
-                Event::KeyDown {
-                    keycode: Some(Keycode::D),
-                    ..
-                } => trans_x += pas,
-                Event::KeyDown {
-                    keycode: Some(Keycode::Q),
-                    ..
-                } => trans_z += -pas,
-                Event::KeyDown {
-                    keycode: Some(Keycode::E),
-                    ..
-                } => trans_z += pas,
-                Event::KeyDown {
-                    keycode: Some(Keycode::M),
-                    ..
-                } => pas += 0.1,
-                Event::KeyDown {
-                    keycode: Some(Keycode::N),
-                    ..
-                } => {
-                    if pas - 0.1 < 0.1 {
-                        pas = 0.1
-                    } else {
-                        pas -= 0.1
-                    }
-                }
-                // ROTATION COMMAND
-                Event::KeyDown {
-                    keycode: Some(Keycode::Up),
-                    ..
-                } => turn_y += 0.1,
-                Event::KeyDown {
-                    keycode: Some(Keycode::Down),
-                    ..
-                } => turn_y += -0.1,
-                Event::KeyDown {
-                    keycode: Some(Keycode::Left),
-                    ..
-                } => turn_x += -0.1,
-                Event::KeyDown {
-                    keycode: Some(Keycode::Right),
-                    ..
-                } => turn_x += 0.1,
-                Event::KeyDown {
-                    keycode: Some(Keycode::Z),
-                    ..
-                } => turn_z += -0.1,
-                Event::KeyDown {
-                    keycode: Some(Keycode::X),
-                    ..
-                } => turn_z += 0.1,
-                // ENABLE DISABLE POLYGON
-                Event::KeyDown {
-                    keycode: Some(Keycode::P),
-                    ..
-                } => poly = !poly,
-
+				Event::KeyDown {  keycode: Some(Keycode::P), .. } => {
+					m.poly = !m.poly;
+				},
+				Event::KeyDown {  keycode: Some(Keycode::T), .. } => {
+					if m.next_text == 0. {
+						m.next_text = 0.05;
+					}
+				},
+				Event::KeyDown { keycode, ..} => {
+					match keycode {
+					   Some(key) => {
+						   m.keys.insert(key.to_string(), true);
+					   },
+					   None => {},
+				   };
+			   },
+			   Event::KeyUp { keycode, ..} => {
+					match keycode {
+					   Some(key) => {
+						   m.keys.remove(&(key.to_string()));
+					   },
+					   None => {},
+				   };
+			   },
                 _ => {}
             }
         }
         unsafe {
             gl.Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
             gl.DepthRange(0., 1.);
-            if poly {
+            if m.poly {
                 gl.PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
             } else {
                 gl.PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
@@ -233,21 +234,23 @@ fn main() -> Result<(), io::Error> {
         }
         unsafe {
             let mut model: Matrix<f32> = Matrix::mat4();
-            model = model.rotate(turn_x, Vector::vec3(0., 1., 0.));
-            model = model.rotate(turn_y, Vector::vec3(1., 0., 0.));
-            model = model.rotate(turn_z, Vector::vec3(0., 0., 1.));
+			model = model.translate(-obj.mid.x, -obj.mid.y, -obj.mid.z);
+            model = model.rotate(m.turn.x, Vector::vec3(0., 1., 0.));
+            model = model.rotate(m.turn.y, Vector::vec3(1., 0., 0.));
+            model = model.rotate(m.turn.z, Vector::vec3(0., 0., 1.));
+			model = model.translate(obj.mid.x, obj.mid.y, obj.mid.z);
 
-            model = model.translate(trans_x, trans_y, trans_z);
+            model = model.translate(m.trans.x, m.trans.y, m.trans.z);
             // SKYBOX
             // gl.DepthMask(gl::FALSE);
             // skybox_program.set_used();
             // skybox_vao.bind();
             // position camera, position + vecteur front , up
-            let view = Matrix::view(
-                Vector::vec3(0., 0., 0.),
-                Vector::vec3(0., 0., -1.),
-                Vector::vec3(0., 1., 0.),
-            );
+            // let view = Matrix::view(
+            //     Vector::vec3(0., 0., 0.),
+            //     Vector::vec3(0., 0., -1.),
+            //     Vector::vec3(0., 1., 0.),
+            // );
             // gl.UniformMatrix4fv(skybox_persp, 1, gl::FALSE, perspective.as_ptr());
             // gl.UniformMatrix4fv(skybox_camera, 1, gl::FALSE, view.as_ptr());
             // bind texture
@@ -256,17 +259,29 @@ fn main() -> Result<(), io::Error> {
             // gl.DrawArrays(gl::TRIANGLES, 0, 36);
             gl.DepthMask(gl::TRUE);
             let view: Matrix<f32> = Matrix::view(
-                Vector::vec3(0., 0., cam_z),
+                Vector::vec3(0., 0., m.cam_z),
                 Vector::vec3(0., 0., -1.),
                 Vector::vec3(0., 1., 0.),
             );
             shader_program.set_used();
             vao.bind();
-
+			gl.Uniform1i(text_index, m.text_i);
+			gl.Uniform1f(opacity, m.next_text);
+			if m.next_text != 0. {
+				m.next_text += 0.05;
+				if m.next_text >= 1.0 {
+					m.text_i = (m.text_i + 1) % env::TEXT_MAX;
+					m.next_text = 0.;
+					//eprintln!("COUCOU {}", next_text);
+				}
+			}
+			gl.ActiveTexture(gl::TEXTURE0);
+			pos_text.bind();
             gl.UniformMatrix4fv(transform_loc, 1, gl::FALSE, model.as_ptr());
             gl.UniformMatrix4fv(persp_loc, 1, gl::FALSE, perspective.as_ptr());
             gl.UniformMatrix4fv(camera_loc, 1, gl::FALSE, view.as_ptr());
-            gl.DrawArrays(
+            // TODO: dessiner par mtl
+			gl.DrawArrays(
                 gl::TRIANGLES,             // mode
                 0,                         // starting index in the enabled arrays
                 vertices.len() as i32 / 4, // number of indices to be rendered
