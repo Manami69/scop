@@ -19,7 +19,7 @@ void main()
     gl_Position = perspective * camera * transform  * model;
 	baseColor = vec4(aColor , 1.0);
 	randColor = vec4(aRandColor , 1.0);
-	pos = model.xy;
+	pos = model.zy;
 
     //TexCoord = aTexCoord;
 	//TexDir = Position.xyz;
