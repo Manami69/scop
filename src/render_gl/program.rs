@@ -1,41 +1,39 @@
 use super::shader::{Shader, *};
-use gl;
 use std;
-use std::ffi::{CStr, CString};
-
 pub struct Program {
     id: gl::types::GLuint,
+    gl: gl::Gl,
 }
 
 impl Program {
-    pub fn from_shaders(shaders: &[Shader]) -> Result<Program, String> {
-        let program_id = unsafe { gl::CreateProgram() };
+    pub fn from_shaders(gl: &gl::Gl, shaders: &[Shader]) -> Result<Program, String> {
+        let program_id = unsafe { gl.CreateProgram() };
 
         for shader in shaders {
             unsafe {
-                gl::AttachShader(program_id, shader.id());
+                gl.AttachShader(program_id, shader.id());
             }
         }
 
         unsafe {
-            gl::LinkProgram(program_id);
+            gl.LinkProgram(program_id);
         }
 
         let mut success: gl::types::GLint = 1;
         unsafe {
-            gl::GetProgramiv(program_id, gl::LINK_STATUS, &mut success);
+            gl.GetProgramiv(program_id, gl::LINK_STATUS, &mut success);
         }
 
         if success == 0 {
             let mut len: gl::types::GLint = 0;
             unsafe {
-                gl::GetProgramiv(program_id, gl::INFO_LOG_LENGTH, &mut len);
+                gl.GetProgramiv(program_id, gl::INFO_LOG_LENGTH, &mut len);
             }
 
             let error = create_whitespace_cstring_with_len(len as usize);
 
             unsafe {
-                gl::GetProgramInfoLog(
+                gl.GetProgramInfoLog(
                     program_id,
                     len,
                     std::ptr::null_mut(),
@@ -48,11 +46,14 @@ impl Program {
 
         for shader in shaders {
             unsafe {
-                gl::DetachShader(program_id, shader.id());
+                gl.DetachShader(program_id, shader.id());
             }
         }
 
-        Ok(Program { id: program_id })
+        Ok(Program {
+            id: program_id,
+            gl: gl.clone(),
+        })
     }
 
     pub fn id(&self) -> gl::types::GLuint {
@@ -61,7 +62,7 @@ impl Program {
 
     pub fn set_used(&self) {
         unsafe {
-            gl::UseProgram(self.id);
+            self.gl.UseProgram(self.id);
         }
     }
 }
@@ -69,7 +70,7 @@ impl Program {
 impl Drop for Program {
     fn drop(&mut self) {
         unsafe {
-            gl::DeleteProgram(self.id);
+            self.gl.DeleteProgram(self.id);
         }
     }
 }

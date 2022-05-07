@@ -1,0 +1,13 @@
+# Blender v2.71 (sub 0) OBJ File: '42.blend'
+# www.blender.org
+mtllib 42.mtl
+o Cube
+v 0 0 0 #popo
+v 1 0 0
+v 1 1 0 #pipi
+v 0.5 1 0
+v 0 1 0
+
+usemtl Material
+s off
+f  1 2 3 4 5
