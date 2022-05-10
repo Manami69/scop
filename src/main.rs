@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::ffi::CString;
 pub mod mathlib;
+use env::ScopOption;
 use mathlib::classes::{matrix::Matrix, vector::Vector};
 use mathlib::operations::other::*;
 pub mod render_gl;
@@ -17,10 +18,24 @@ fn main() -> Result<(), io::Error> {
     // args
     let args: Vec<String> = std::env::args().collect();
     if args.len() < 2 {
+		print!(
+"\x1b[93mYou must launch the program with the obj file name as an arg\n\x1b[0m
+Options : 
+	/sky : show the skybox
+	/concave : check if the model has a concave polygon and panic! if so
+	/coplanar : check if the model has a non-coplanar polygon and panic! if so
+	/t texture_path : use a specific texture
+bisous 😘"
+		);
         return Ok(());
     }
     ////////////////////////////////////////////////////////
-	
+	let mut opt  = ScopOption::new();
+
+	if args.len() > 2 {
+		opt.fill_options(args[2 ..].to_vec());
+		println!("{:?}", opt);
+	}
     let (mut event_pump, window, video_subsystem) = Window::new();
     let _gl_context = window.gl_create_context().unwrap();
     let gl = gl::Gl::load_with(|s| {
@@ -33,7 +48,8 @@ fn main() -> Result<(), io::Error> {
     }
 	let mut obj = Objfile::new();
 	obj.read_file(&args[1]);
-	
+	// TODO: FOUTRE DANS LA CLASSE SHADER
+
     let vert_shader = Shader::from_vert_source(
         &gl,
         &CString::new(include_str!("shaders/triangle.vert")).unwrap(),

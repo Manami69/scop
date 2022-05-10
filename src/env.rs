@@ -48,3 +48,48 @@ impl ModelEvent {
 
 	//pub 
 }
+
+#[derive(Debug)]
+pub struct ScopOption {
+	pub concave: bool,
+	pub coplana: bool,
+	pub skybox: bool,
+	pub text: Option<String>,
+}
+impl ScopOption {
+	pub fn new() -> Self {
+		Self {
+			concave : false,
+			coplana: false,
+			skybox: false,
+			text: None,
+		}
+	}
+
+	pub fn fill_options(&mut self, args : Vec<String>) {
+		let mut next = false;
+		for (i, arg) in args.into_iter().enumerate() {
+			match arg.as_str() {
+				"/concave" => {
+					if next { panic!("Options not well formated")}
+					self.concave = true;
+				},
+				"/coplanar" => {
+					if next { panic!("Options not well formated")}
+					self.coplana = true;
+				},
+				"/sky" => {
+					if next { panic!("Options not well formated")}
+					self.skybox = true;
+				},
+				"/t" => next = true,
+				_ => {
+					if next {
+						self.text = Some(arg.to_string());
+						next = false;
+					}
+				} 
+			}
+		}
+	}
+}
