@@ -18,37 +18,37 @@ fn main() -> Result<(), io::Error> {
     // args
     let args: Vec<String> = std::env::args().collect();
     if args.len() < 2 {
-		print!(
-"\x1b[93mYou must launch the program with the obj file name as an arg\n\x1b[0m
+        print!(
+            "\x1b[93mYou must launch the program with the obj file name as an arg
+	cargo run [obj file path] [Options...]\n\x1b[0m
 Options : 
 	/sky : show the skybox
 	/concave : check if the model has a concave polygon and panic! if so
 	/coplanar : check if the model has a non-coplanar polygon and panic! if so
 	/t texture_path : use a specific texture
-bisous 😘"
-		);
+bisous 😘\n"
+        );
         return Ok(());
     }
     ////////////////////////////////////////////////////////
-	let mut opt  = ScopOption::new();
+    let mut opt = ScopOption::new();
 
-	if args.len() > 2 {
-		opt.fill_options(args[2 ..].to_vec());
-		println!("{:?}", opt);
-	}
+    if args.len() > 2 {
+        opt.fill_options(args[2..].to_vec());
+    }
     let (mut event_pump, window, video_subsystem) = Window::new();
     let _gl_context = window.gl_create_context().unwrap();
     let gl = gl::Gl::load_with(|s| {
-		video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void
+        video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void
     });
-	
+
     unsafe {
-		gl.Viewport(0, 0, 1280, 720); // set viewport
+        gl.Viewport(0, 0, 1280, 720); // set viewport
         gl.ClearColor(0.3, 0.3, 0.5, 1.0);
     }
-	let mut obj = Objfile::new();
-	obj.read_file(&args[1]);
-	// TODO: FOUTRE DANS LA CLASSE SHADER
+    let mut obj = Objfile::new();
+    obj.read_file(&args[1], &opt);
+    // TODO: FOUTRE DANS LA CLASSE SHADER
 
     let vert_shader = Shader::from_vert_source(
         &gl,
@@ -79,8 +79,8 @@ bisous 😘"
 
     vao.attrib(0, 4, 12, 0); // vertices
     vao.attrib(1, 3, 12, 4); // rand color
-	vao.attrib(2, 3, 12, 7); // default color
-	vao.attrib(3, 2, 12, 10); // texture mapping
+    vao.attrib(2, 3, 12, 7); // default color
+    vao.attrib(3, 2, 12, 10); // texture mapping
 
     // set skybox
     // let vert_skybox_shader = Shader::from_vert_source(
@@ -112,13 +112,13 @@ bisous 😘"
     let transform_loc: gl::types::GLint;
     let persp_loc: gl::types::GLint;
     let camera_loc: gl::types::GLint;
-	let text_index: gl::types::GLint; // index de la texture sur laquelle on est
-	let opacity: gl::types::GLint; // opacity of the next texture
+    let text_index: gl::types::GLint; // index de la texture sur laquelle on est
+    let opacity: gl::types::GLint; // opacity of the next texture
 
-	let uniform_pos_text: gl::types::GLint;
+    let uniform_pos_text: gl::types::GLint;
 
-	let pos_text: Texture = Texture::new(&gl);
-	pos_text.load("Ressources/Textures/large_qpupier.png".to_string());
+    let pos_text: Texture = Texture::new(&gl);
+    pos_text.load("Ressources/Textures/large_qpupier.png".to_string());
     // let skybox_persp: gl::types::GLint;
     // let skybox_camera: gl::types::GLint;
 
@@ -152,55 +152,53 @@ bisous 😘"
         //     gl.GetUniformLocation(skybox_program.id(), cname.as_ptr()),
         //     0,
         // );
-		let cname = std::ffi::CString::new("texture_position").expect("CString::new failed");
+        let cname = std::ffi::CString::new("texture_position").expect("CString::new failed");
         uniform_pos_text = gl.GetUniformLocation(shader_program.id(), cname.as_ptr());
-		let cname = std::ffi::CString::new("indextext").expect("CString::new failed");
+        let cname = std::ffi::CString::new("indextext").expect("CString::new failed");
         text_index = gl.GetUniformLocation(shader_program.id(), cname.as_ptr());
-		let cname = std::ffi::CString::new("opacity").expect("CString::new failed");
+        let cname = std::ffi::CString::new("opacity").expect("CString::new failed");
         opacity = gl.GetUniformLocation(shader_program.id(), cname.as_ptr());
     }
 
-	let mut m: env::ModelEvent = env::ModelEvent::new();
+    let mut m: env::ModelEvent = env::ModelEvent::new();
 
     'main: loop {
-
-
-		if m.keys.get("W").is_some() {
-			m.trans.z += 0.1;
-		}
-		if m.keys.get("S").is_some() {
-			m.trans.z -= 0.1;
-		}
-		if m.keys.get("A").is_some() {
-			m.trans.x += 0.1;
-		}
-		if m.keys.get("D").is_some() {
-			m.trans.x -= 0.1;
-		}
-		if m.keys.get("F").is_some() {
-			m.trans.y -= 0.1;
-		}
-		if m.keys.get("R").is_some() {
-			m.trans.y -= 0.1;
-		}
-		if m.keys.get("Up").is_some() {
-			m.turn.y += 0.1;
-		}
-		if m.keys.get("Down").is_some() {
-			m.turn.y -= 0.1;
-		}
-		if m.keys.get("Right").is_some() {
-			m.turn.x += 0.1;
-		}
-		if m.keys.get("Left").is_some() {
-			m.turn.x -= 0.1;
-		}
-		if m.keys.get("Q").is_some() {
-			m.turn.z -= 0.1;
-		}
-		if m.keys.get("E").is_some() {
-			m.turn.z += 0.1;
-		}
+        if m.keys.get("W").is_some() {
+            m.trans.z += 0.1;
+        }
+        if m.keys.get("S").is_some() {
+            m.trans.z -= 0.1;
+        }
+        if m.keys.get("A").is_some() {
+            m.trans.x += 0.1;
+        }
+        if m.keys.get("D").is_some() {
+            m.trans.x -= 0.1;
+        }
+        if m.keys.get("F").is_some() {
+            m.trans.y -= 0.1;
+        }
+        if m.keys.get("R").is_some() {
+            m.trans.y -= 0.1;
+        }
+        if m.keys.get("Up").is_some() {
+            m.turn.y += 0.1;
+        }
+        if m.keys.get("Down").is_some() {
+            m.turn.y -= 0.1;
+        }
+        if m.keys.get("Right").is_some() {
+            m.turn.x += 0.1;
+        }
+        if m.keys.get("Left").is_some() {
+            m.turn.x -= 0.1;
+        }
+        if m.keys.get("Q").is_some() {
+            m.turn.z -= 0.1;
+        }
+        if m.keys.get("E").is_some() {
+            m.turn.z += 0.1;
+        }
 
         for event in event_pump.poll_iter() {
             match event {
@@ -212,30 +210,36 @@ bisous 😘"
                 // ZOOM CAMERA
                 Event::MouseWheel { y: num, .. } => m.cam_z -= num as f32,
                 // TRANSLATION COMMAND
-				Event::KeyDown {  keycode: Some(Keycode::P), .. } => {
-					m.poly = !m.poly;
-				},
-				Event::KeyDown {  keycode: Some(Keycode::T), .. } => {
-					if m.next_text == 0. {
-						m.next_text = 0.05;
-					}
-				},
-				Event::KeyDown { keycode, ..} => {
-					match keycode {
-					   Some(key) => {
-						   m.keys.insert(key.to_string(), true);
-					   },
-					   None => {},
-				   };
-			   },
-			   Event::KeyUp { keycode, ..} => {
-					match keycode {
-					   Some(key) => {
-						   m.keys.remove(&(key.to_string()));
-					   },
-					   None => {},
-				   };
-			   },
+                Event::KeyDown {
+                    keycode: Some(Keycode::P),
+                    ..
+                } => {
+                    m.poly = !m.poly;
+                }
+                Event::KeyDown {
+                    keycode: Some(Keycode::T),
+                    ..
+                } => {
+                    if m.next_text == 0. {
+                        m.next_text = 0.05;
+                    }
+                }
+                Event::KeyDown { keycode, .. } => {
+                    match keycode {
+                        Some(key) => {
+                            m.keys.insert(key.to_string(), true);
+                        }
+                        None => {}
+                    };
+                }
+                Event::KeyUp { keycode, .. } => {
+                    match keycode {
+                        Some(key) => {
+                            m.keys.remove(&(key.to_string()));
+                        }
+                        None => {}
+                    };
+                }
                 _ => {}
             }
         }
@@ -250,11 +254,11 @@ bisous 😘"
         }
         unsafe {
             let mut model: Matrix<f32> = Matrix::mat4();
-			model = model.translate(-obj.mid.x, -obj.mid.y, -obj.mid.z);
+            model = model.translate(-obj.mid.x, -obj.mid.y, -obj.mid.z);
             model = model.rotate(m.turn.x, Vector::vec3(0., 1., 0.));
             model = model.rotate(m.turn.y, Vector::vec3(1., 0., 0.));
             model = model.rotate(m.turn.z, Vector::vec3(0., 0., 1.));
-			model = model.translate(obj.mid.x, obj.mid.y, obj.mid.z);
+            model = model.translate(obj.mid.x, obj.mid.y, obj.mid.z);
 
             model = model.translate(m.trans.x, m.trans.y, m.trans.z);
             // SKYBOX
@@ -281,23 +285,23 @@ bisous 😘"
             );
             shader_program.set_used();
             vao.bind();
-			gl.Uniform1i(text_index, m.text_i);
-			gl.Uniform1f(opacity, m.next_text);
-			if m.next_text != 0. {
-				m.next_text += 0.05;
-				if m.next_text >= 1.0 {
-					m.text_i = (m.text_i + 1) % env::TEXT_MAX;
-					m.next_text = 0.;
-					//eprintln!("COUCOU {}", next_text);
-				}
-			}
-			gl.ActiveTexture(gl::TEXTURE0);
-			pos_text.bind();
+            gl.Uniform1i(text_index, m.text_i);
+            gl.Uniform1f(opacity, m.next_text);
+            if m.next_text != 0. {
+                m.next_text += 0.05;
+                if m.next_text >= 1.0 {
+                    m.text_i = (m.text_i + 1) % env::TEXT_MAX;
+                    m.next_text = 0.;
+                    //eprintln!("COUCOU {}", next_text);
+                }
+            }
+            gl.ActiveTexture(gl::TEXTURE0);
+            pos_text.bind();
             gl.UniformMatrix4fv(transform_loc, 1, gl::FALSE, model.as_ptr());
             gl.UniformMatrix4fv(persp_loc, 1, gl::FALSE, perspective.as_ptr());
             gl.UniformMatrix4fv(camera_loc, 1, gl::FALSE, view.as_ptr());
             // TODO: dessiner par mtl
-			gl.DrawArrays(
+            gl.DrawArrays(
                 gl::TRIANGLES,             // mode
                 0,                         // starting index in the enabled arrays
                 vertices.len() as i32 / 4, // number of indices to be rendered

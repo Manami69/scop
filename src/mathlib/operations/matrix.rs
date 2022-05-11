@@ -716,4 +716,17 @@ impl Matrix<f32> {
     pub fn as_ptr(&self) -> *const gl::types::GLfloat {
         self.data.as_ptr() as *const gl::types::GLfloat
     }
+
+	pub fn get_mat3_from_offset(&self, offset: usize) -> Self {
+		let shape = self.shape();
+		if shape[0] != 3 {panic!("Only use for 3 row's matrixes")}
+		if offset + 3 > shape[1] {panic!("You're out of bound B.")}
+		let mut vec : Vec<f32> = vec![];
+		for n in 0 .. 3 {
+			for i in 0 .. 3 {
+				vec.push(self.data[offset * n + i]);
+			}
+		}
+		Matrix::from((vec, [3,3]))
+	}
 }

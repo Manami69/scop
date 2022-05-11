@@ -1,12 +1,13 @@
-use std::fs::File;
-use std::io::{prelude::*, BufReader};
+use super::mtl_file::Mtl;
+use crate::env::*;
 use crate::env::{Color, Point3d};
-use crate::mathlib::operations::other::lerp;
-use std::path::Path;
+use crate::mathlib::{classes::matrix::Matrix, operations::other::lerp};
+use crate::render_gl::texture::Texture;
 use rand::Rng;
 use std::collections::HashMap;
-use super::mtl_file::Mtl;
-use crate::render_gl::texture::Texture;
+use std::fs::File;
+use std::io::{prelude::*, BufReader};
+use std::path::Path;
 //use itertools::izip; //     for (x, y, z) in izip!(&a, &b, &c) {
 /*
 # List of geometric vertices, with (x, y, z [,w]) coordinates, w is optional and defaults to 1.0.
@@ -51,11 +52,11 @@ pub struct Objfile {
     pub f: HashMap<String, Vec<Vec<usize>>>,
     pub l: Vec<f32>,
     pub tex: Vec<Mtl>,
-	pub mtl_names: Vec<String>,
-	pub using: String,
-	pub min: Point3d,
-	pub max: Point3d,
-	pub mid : Point3d,
+    pub mtl_names: Vec<String>,
+    pub using: String,
+    pub min: Point3d,
+    pub max: Point3d,
+    pub mid: Point3d,
 }
 
 impl Objfile {
@@ -67,15 +68,27 @@ impl Objfile {
             // vp: vec![],
             f: HashMap::new(),
             l: vec![],
-			tex: vec![],
-			mtl_names: vec![],
-			using: String::new(),
-			min: Point3d{x:f32::MAX, y:f32::MAX, z:f32::MAX},
-			max: Point3d{x:f32::MIN, y:f32::MIN, z:f32::MIN},
-			mid: Point3d{x:0., y:0., z:0.},
+            tex: vec![],
+            mtl_names: vec![],
+            using: String::new(),
+            min: Point3d {
+                x: f32::MAX,
+                y: f32::MAX,
+                z: f32::MAX,
+            },
+            max: Point3d {
+                x: f32::MIN,
+                y: f32::MIN,
+                z: f32::MIN,
+            },
+            mid: Point3d {
+                x: 0.,
+                y: 0.,
+                z: 0.,
+            },
         }
     }
-    pub fn read_file(&mut self, filename: &String) {
+    pub fn read_file(&mut self, filename: &String, opt: &ScopOption) {
         match Path::new(&filename).extension() {
             None => {
                 panic!("file must have obj extension")
@@ -97,13 +110,13 @@ impl Objfile {
 
         let reader = BufReader::new(file);
         for line in reader.lines() {
-            self.parse_line(&line.unwrap());
+            self.parse_line(&line.unwrap(), opt);
         }
         //println!("{:?}", self.v);
     }
-    fn parse_line(&mut self, line: &String) {
+    fn parse_line(&mut self, line: &String, opt: &ScopOption) {
         let mut split: Vec<&str> = line.split(' ').collect();
-		//let mut comm: bool = false;
+        //let mut comm: bool = false;
         split = split
             .iter()
             .filter_map(|s| (!s.is_empty()).then(|| *s))
@@ -111,35 +124,38 @@ impl Objfile {
         if split.is_empty() {
             return;
         }
-		split = split.into_iter().take_while(|s| {
-			match s.find('#') {
-				Some(_) => {false},
-				None => {true}
-			}
-		}).collect();
-		if split.len() > 0 {
-        match split[0] {
-			"mtllib" => self.parse_mtllib(split), // parse le fichier et rempli la hashmap de mtl
-            "v" => self.parse_v(split),
-            "vt" => self.parse_vt(split),
-            "vn" => self.parse_vn(split),
-            // "vp" => todo!(),
-			"usemtl" => self.parse_usemtl(split), // met le bon material dans current si pas trouve alors default value // TODO:
-            "f" => self.parse_f(split),
-            // "l" => todo!(),
-            _ => {}
+        split = split
+            .into_iter()
+            .take_while(|s| match s.find('#') {
+                Some(_) => false,
+                None => true,
+            })
+            .collect();
+        if split.len() > 0 {
+            match split[0] {
+                "mtllib" => self.parse_mtllib(split), // parse le fichier et rempli la hashmap de mtl
+                "v" => self.parse_v(split),
+                "vt" => self.parse_vt(split),
+                "vn" => self.parse_vn(split),
+                // "vp" => todo!(),
+                "usemtl" => self.parse_usemtl(split), // met le bon material dans current si pas trouve alors default value // TODO:
+                "f" => self.parse_f(split, opt),
+                // "l" => todo!(),
+                _ => {}
+            }
         }
-	}
     }
-	fn parse_usemtl(&mut self, split: Vec<&str>) {
-		if split.len() < 2 { panic!("HOHOHO JE SUIS LE PERE NOEL")}
-		if self.mtl_names.clone().contains(&split[1].to_string()) {
-			self.using = split[1].to_string();
-		}
-	}
-	fn parse_mtllib_line(&mut self, line: &String) {
-		let mut split: Vec<&str> = line.split(' ').collect();
-		//let mut comm: bool = false;
+    fn parse_usemtl(&mut self, split: Vec<&str>) {
+        if split.len() < 2 {
+            panic!("HOHOHO JE SUIS LE PERE NOEL")
+        }
+        if self.mtl_names.clone().contains(&split[1].to_string()) {
+            self.using = split[1].to_string();
+        }
+    }
+    fn parse_mtllib_line(&mut self, line: &String) {
+        let mut split: Vec<&str> = line.split(' ').collect();
+        //let mut comm: bool = false;
         split = split
             .iter()
             .filter_map(|s| (!s.is_empty()).then(|| *s))
@@ -147,40 +163,60 @@ impl Objfile {
         if split.is_empty() {
             return;
         }
-		split = split.into_iter().take_while(|s| {
-			match s.find('#') {
-				Some(_) => {false},
-				None => {true}
-			}
-		}).collect();
-		if split.len() == 0 { return ;}
-		match split[0] {
-			"newmtl" => {
-				if split.len() < 2 {panic!("MTL FILE CORRUPTED");}
-				self.mtl_names.push(split[1].to_string());
-				self.tex.push(Mtl::new(split[1]));
-			},
-			"Kd" => {
-				if split.len() < 4 {panic!("MTL FILE CORRUPTED");}
-				let l = self.mtl_names.len();
-				if l == 0 {panic!("MTL FILE CORRUPTED")}
+        split = split
+            .into_iter()
+            .take_while(|s| match s.find('#') {
+                Some(_) => false,
+                None => true,
+            })
+            .collect();
+        if split.len() == 0 {
+            return;
+        }
+        match split[0] {
+            "newmtl" => {
+                if split.len() < 2 {
+                    panic!("MTL FILE CORRUPTED");
+                }
+                self.mtl_names.push(split[1].to_string());
+                self.tex.push(Mtl::new(split[1]));
+            }
+            "Kd" => {
+                if split.len() < 4 {
+                    panic!("MTL FILE CORRUPTED");
+                }
+                let l = self.mtl_names.len();
+                if l == 0 {
+                    panic!("MTL FILE CORRUPTED")
+                }
 
-				self.tex[l - 1].diffuse_color = Color(split[1].parse::<f32>().unwrap(), split[2].parse::<f32>().unwrap(), split[3].parse::<f32>().unwrap());
-			},
-			"map_Ka" => {
-				if split.len() < 2 {panic!("MTL FILE CORRUPTED")}
-				let l = self.mtl_names.len();
-				if l == 0 {panic!("MTL FILE CORRUPTED")}
-				self.tex[l - 1 ].text_map = Some(split[1].to_string());
-			},
+                self.tex[l - 1].diffuse_color = Color(
+                    split[1].parse::<f32>().unwrap(),
+                    split[2].parse::<f32>().unwrap(),
+                    split[3].parse::<f32>().unwrap(),
+                );
+            }
+            "map_Ka" => {
+                if split.len() < 2 {
+                    panic!("MTL FILE CORRUPTED")
+                }
+                let l = self.mtl_names.len();
+                if l == 0 {
+                    panic!("MTL FILE CORRUPTED")
+                }
+                self.tex[l - 1].text_map = Some(split[1].to_string());
+            }
             _ => {}
         };
-	}
+    }
 
-	fn parse_mtllib(&mut self, split: Vec<&str>) {
-		if split.len() < 2 { eprintln!("CANNOT FIND MTL FILE"); return; }
-		let filename = split[1];
-		match Path::new(&filename).extension() {
+    fn parse_mtllib(&mut self, split: Vec<&str>) {
+        if split.len() < 2 {
+            eprintln!("CANNOT FIND MTL FILE");
+            return;
+        }
+        let filename = split[1];
+        match Path::new(&filename).extension() {
             None => {
                 eprintln!("MTL FILE CORRUPTED");
             }
@@ -192,18 +228,18 @@ impl Objfile {
                 );
             }
         };
-		let file = match File::open(format!("{}{}", "Ressources/", filename)) {
+        let file = match File::open(format!("{}{}", "Ressources/", filename)) {
             Err(err) => {
                 eprintln!("Couldn't open mtl file : {}", err);
-				return;
+                return;
             }
             Ok(ok) => ok,
         };
-		let reader = BufReader::new(file);
+        let reader = BufReader::new(file);
         for line in reader.lines() {
-			self.parse_mtllib_line(&line.unwrap())
+            self.parse_mtllib_line(&line.unwrap())
         }
-	}
+    }
 
     fn parse_v(&mut self, split: Vec<&str>) {
         let len = split.len();
@@ -211,20 +247,32 @@ impl Objfile {
         if len != 4 && len != 5 {
             panic!("unvalid obj file")
         }
-        for (i, val) in split[1..len].into_iter().enumerate(){
+        for (i, val) in split[1..len].into_iter().enumerate() {
             match val.parse::<f32>() {
                 Err(_) => {}
                 Ok(num) => {
-					if i == 0 {
-						if num < self.min.x { self.min.x = num}
-						if num > self.max.x { self.max.x = num}
-					} else if i == 1 {
-						if num < self.min.y { self.min.y = num}
-						if num > self.max.y { self.max.y = num}
-					} else if i == 2 {
-						if num < self.min.z { self.min.z = num}
-						if num > self.max.z { self.max.z = num}
-					}
+                    if i == 0 {
+                        if num < self.min.x {
+                            self.min.x = num
+                        }
+                        if num > self.max.x {
+                            self.max.x = num
+                        }
+                    } else if i == 1 {
+                        if num < self.min.y {
+                            self.min.y = num
+                        }
+                        if num > self.max.y {
+                            self.max.y = num
+                        }
+                    } else if i == 2 {
+                        if num < self.min.z {
+                            self.min.z = num
+                        }
+                        if num > self.max.z {
+                            self.max.z = num
+                        }
+                    }
                     vec.push(num);
                 }
             };
@@ -261,7 +309,7 @@ impl Objfile {
         self.vt.push(vec);
     }
 
-	fn parse_vn(&mut self, split: Vec<&str>) {
+    fn parse_vn(&mut self, split: Vec<&str>) {
         let len = split.len();
         let mut vec: Vec<f32> = Vec::<f32>::new();
         if len != 4 {
@@ -276,15 +324,43 @@ impl Objfile {
             };
         });
         if vec.len() != len - 1 {
-            panic!("unvalid obj file")
+            panic!("unvalid obj file");
         }
         self.vn.push(vec);
     }
-
-    fn parse_f(&mut self, split: Vec<&str>) {
-		if !self.f.contains_key(&self.using) {
-			self.f.insert(self.using.clone(), vec![Vec::<usize>::new(); 3]);
+	// seulement pour les plan > 3m
+    fn check_coplanar(&mut self, vec: Vec<usize>) {
+    	let mut test :  Vec<f32> = vec![];
+		let mut minus: [f32; 3] = [0.; 3];
+		let len = vec.len() - 1;
+    	for (i, val) in vec.clone().into_iter().enumerate() {
+			if i == 0 {
+				minus[0] = self.v[val - 1][0];
+				minus[1] = self.v[val - 1][1];
+				minus[2] = self.v[val - 1][2];
+			} else {
+				test.push(self.v[val - 1][0] - minus[0]);
+				test.push(self.v[val - 1][1] - minus[1]);
+				test.push(self.v[val - 1][2] - minus[2]);
+			}
 		}
+    	let mat = Matrix::from((test, [len, 3])).transpose();
+		if mat.rank() > 2 {
+			if len == 3 && mat.determinant() > 0.00001 { panic!("Non coplanar face");}
+			else {
+				for i in 0 .. len - 2 {
+					if mat.get_mat3_from_offset(i).determinant() > 0.00001 { panic!("Non coplanar face");}
+				}
+			}
+		}
+    }
+
+    fn parse_f(&mut self, split: Vec<&str>, opt: &ScopOption) {
+        if !self.f.contains_key(&self.using) {
+			eprintln!("creating mtl {}", &self.using);
+            self.f
+                .insert(self.using.clone(), vec![Vec::<usize>::new(); 3]);
+        }
 
         let len = split.len();
         let mut vec = vec![Vec::<usize>::new(); 3];
@@ -306,7 +382,9 @@ impl Objfile {
         if veclen != len - 1 {
             return;
         }
+        // TODO: mettre les checks
         if veclen > 3 {
+			if opt.coplana == true {self.check_coplanar(vec[V].clone());}
             // let mut collec: Vec<Vec<usize>> = Vec::new();
             for j in 0..veclen - 2 {
                 for (i, val) in vec.iter().enumerate() {
@@ -321,7 +399,8 @@ impl Objfile {
             // collec.iter().for_each(|val| self.f.push(val.clone()));
         } else {
             for (i, val) in vec.iter().enumerate() {
-                val.iter().for_each(|v| self.f.get_mut(&self.using).unwrap()[i].push(*v))
+                val.iter()
+                    .for_each(|v| self.f.get_mut(&self.using).unwrap()[i].push(*v))
             }
         }
     }
@@ -333,52 +412,52 @@ impl Objfile {
             return arr;
         }
         let mut cface = 0;
-		
-		let mut rcolor = Color(0.0, 0.0, 0.0);
-		let mut rng = rand::thread_rng();
-		if self.mtl_names.is_empty() {
-			self.mtl_names.push(String::new());
-			self.tex.push(Mtl::new_default());
-			//eprintln!("POPO");
-		}
-		for (index, name) in self.mtl_names.clone().into_iter().enumerate() {
-			//eprintln!("POUET {:?}", self.f);
-			let color = self.tex[index].diffuse_color;
-			for (i, face) in self.f.get(&name).unwrap()[V].iter().enumerate(){
-				if cface % 3 == 0 {
-					cface = 0;
-					rcolor = Color(rng.gen::<f32>(), rng.gen::<f32>(), rng.gen::<f32>());
-				}
-				cface += 1;
-				// push vertices
-				self.v[*face - 1].iter().for_each(|vertice| {
-					arr.push(*vertice); 
-				});
-				// random color 
-				arr.push(rcolor.0);
-				arr.push(rcolor.1);
-				arr.push(rcolor.2);
-				// true color
-				arr.push(color.0);
-				arr.push(color.1);
-				arr.push(color.2);
-				// text coord
-				//eprintln!("{}/{} self.vt {:?}", i, self.vt.len(),self.vt[649], self.f.get(&name).unwrap()[VT][i]);
-				if !self.vt.is_empty() && i < self.f.get(&name).unwrap()[VT].len() {
-					arr.push(self.vt[self.f.get(&name).unwrap()[VT][i] - 1][0]);
-					arr.push(self.vt[self.f.get(&name).unwrap()[VT][i] - 1][1]);
-				}
-				else { // if no texture do it // TODO:
-					arr.push(0.);
-					arr.push(0.);
-				}
-				// normal coord
 
-			}
-		}
-		self.mid.x =  lerp(self.min.x, self.max.x, 0.5);
-		self.mid.y =  lerp(self.min.y, self.max.y, 0.5);
-		self.mid.z =  lerp(self.min.z, self.max.z, 0.5);
+        let mut rcolor = Color(0.0, 0.0, 0.0);
+        let mut rng = rand::thread_rng();
+        if self.mtl_names.is_empty() {
+            self.mtl_names.push(String::new());
+            self.tex.push(Mtl::new_default());
+            //eprintln!("POPO");
+        }
+        for (index, name) in self.mtl_names.clone().into_iter().enumerate() {
+			if self.f.get(&name).is_none() {continue; }
+            //eprintln!("POUET {:?}", self.f);
+            let color = self.tex[index].diffuse_color;
+            for (i, face) in self.f.get(&name).expect(&format!("mtl {} not found in mtl list (had {:?})", &name, &self.mtl_names))[V].iter().enumerate() {
+                if cface % 3 == 0 {
+                    cface = 0;
+                    rcolor = Color(rng.gen::<f32>(), rng.gen::<f32>(), rng.gen::<f32>());
+                }
+                cface += 1;
+                // push vertices
+                self.v[*face - 1].iter().for_each(|vertice| {
+                    arr.push(*vertice);
+                });
+                // random color
+                arr.push(rcolor.0);
+                arr.push(rcolor.1);
+                arr.push(rcolor.2);
+                // true color
+                arr.push(color.0);
+                arr.push(color.1);
+                arr.push(color.2);
+                // text coord
+                //eprintln!("{}/{} self.vt {:?}", i, self.vt.len(),self.vt[649], self.f.get(&name).unwrap()[VT][i]);
+                if !self.vt.is_empty() && i < self.f.get(&name).unwrap()[VT].len() {
+                    arr.push(self.vt[self.f.get(&name).unwrap()[VT][i] - 1][0]);
+                    arr.push(self.vt[self.f.get(&name).unwrap()[VT][i] - 1][1]);
+                } else {
+                    // if no texture do it // TODO:
+                    arr.push(0.);
+                    arr.push(0.);
+                }
+                // normal coord
+            }
+        }
+        self.mid.x = lerp(self.min.x, self.max.x, 0.5);
+        self.mid.y = lerp(self.min.y, self.max.y, 0.5);
+        self.mid.z = lerp(self.min.z, self.max.z, 0.5);
         arr
     }
 }
