@@ -7,7 +7,7 @@ pub const WIDTH: u32 = 1280;
 /// Window's name
 pub const NAME: &str = "scop";
 /// textures max
-pub const TEXT_MAX: i32 = 3;
+pub const TEXT_MAX: i32 = 4;
 #[derive(Clone, Copy, PartialEq)]
 pub struct Color(pub f32, pub f32, pub f32);
 pub struct Point3d {

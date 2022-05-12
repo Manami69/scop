@@ -13,6 +13,7 @@ uniform mat4 camera;
 out vec4 baseColor;
 out vec4 randColor;
 out vec2 pos;
+out vec2 TexCoord;
 
 void main()
 {
@@ -20,7 +21,6 @@ void main()
 	baseColor = vec4(aColor , 1.0);
 	randColor = vec4(aRandColor , 1.0);
 	pos = model.zy;
-
-    //TexCoord = aTexCoord;
+    TexCoord = aTexCoord;
 	//TexDir = Position.xyz;
 }

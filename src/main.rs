@@ -46,7 +46,7 @@ bisous 😘\n"
         gl.Viewport(0, 0, 1280, 720); // set viewport
         gl.ClearColor(0.3, 0.3, 0.5, 1.0);
     }
-    let mut obj = Objfile::new();
+    let mut obj = Objfile::new(&gl);
     obj.read_file(&args[1], &opt);
     // TODO: FOUTRE DANS LA CLASSE SHADER
 
@@ -114,6 +114,8 @@ bisous 😘\n"
     let camera_loc: gl::types::GLint;
     let text_index: gl::types::GLint; // index de la texture sur laquelle on est
     let opacity: gl::types::GLint; // opacity of the next texture
+    let texture1: gl::types::GLint; // opacity of the next texture
+    let texture2: gl::types::GLint; // opacity of the next texture
 
     let uniform_pos_text: gl::types::GLint;
 
@@ -158,6 +160,13 @@ bisous 😘\n"
         text_index = gl.GetUniformLocation(shader_program.id(), cname.as_ptr());
         let cname = std::ffi::CString::new("opacity").expect("CString::new failed");
         opacity = gl.GetUniformLocation(shader_program.id(), cname.as_ptr());
+
+
+        let cname = std::ffi::CString::new("texture1").expect("CString::new failed");
+        texture1 = gl.GetUniformLocation(shader_program.id(), cname.as_ptr());
+
+        let cname = std::ffi::CString::new("texture2").expect("CString::new failed");
+        texture2 = gl.GetUniformLocation(shader_program.id(), cname.as_ptr());
     }
 
     let mut m: env::ModelEvent = env::ModelEvent::new();
@@ -279,8 +288,8 @@ bisous 😘\n"
             // gl.DrawArrays(gl::TRIANGLES, 0, 36);
             gl.DepthMask(gl::TRUE);
             let view: Matrix<f32> = Matrix::view(
-                Vector::vec3(0., 0., m.cam_z),
-                Vector::vec3(0., 0., -1.),
+                Vector::vec3(0., 00., m.cam_z),
+                Vector::vec3(obj.mid.x, obj.mid.y, -obj.mid.z),
                 Vector::vec3(0., 1., 0.),
             );
             shader_program.set_used();
@@ -295,17 +304,35 @@ bisous 😘\n"
                     //eprintln!("COUCOU {}", next_text);
                 }
             }
+			gl.Uniform1i(texture1, 0);
             gl.ActiveTexture(gl::TEXTURE0);
             pos_text.bind();
             gl.UniformMatrix4fv(transform_loc, 1, gl::FALSE, model.as_ptr());
             gl.UniformMatrix4fv(persp_loc, 1, gl::FALSE, perspective.as_ptr());
             gl.UniformMatrix4fv(camera_loc, 1, gl::FALSE, view.as_ptr());
             // TODO: dessiner par mtl
-            gl.DrawArrays(
+			for (i, val) in obj.tex.clone().into_iter().enumerate() {
+				if val.show == false {continue ;}
+				
+				gl.Uniform1i(texture2, 1);
+				gl.ActiveTexture(gl::TEXTURE1);
+				match val.text_map {
+					Some(tex) => {
+						obj.textures.get(&tex).unwrap().bind();
+						//println!("GLOUGLOU {}", &tex);
+					},
+					None => {  
+						gl.BindTexture(gl::TEXTURE_2D, 0)
+					}
+				}
+				
+				gl.DrawArrays(
                 gl::TRIANGLES,             // mode
-                0,                         // starting index in the enabled arrays
-                vertices.len() as i32 / 4, // number of indices to be rendered
+                val.start,                         // starting index in the enabled arrays
+                val.end - val.start , // number of indices to be rendered 
             );
+		}
+           
         }
         window.gl_swap_window();
         // render window contents here

@@ -6,6 +6,7 @@ use crate::render_gl::texture::Texture;
 use rand::Rng;
 use std::collections::HashMap;
 use std::fs::File;
+use std::hash::Hash;
 use std::io::{prelude::*, BufReader};
 use std::path::Path;
 //use itertools::izip; //     for (x, y, z) in izip!(&a, &b, &c) {
@@ -57,10 +58,12 @@ pub struct Objfile {
     pub min: Point3d,
     pub max: Point3d,
     pub mid: Point3d,
+	pub textures: HashMap<String, Texture>,
+	pub gl: gl::Gl,
 }
 
 impl Objfile {
-    pub fn new() -> Self {
+    pub fn new(gl: &gl::Gl) -> Self {
         Self {
             v: vec![],
             vt: vec![],
@@ -86,6 +89,8 @@ impl Objfile {
                 y: 0.,
                 z: 0.,
             },
+			textures : HashMap::new(),
+			gl: gl.clone(), 
         }
     }
     pub fn read_file(&mut self, filename: &String, opt: &ScopOption) {
@@ -196,7 +201,7 @@ impl Objfile {
                     split[3].parse::<f32>().unwrap(),
                 );
             }
-            "map_Ka" => {
+            "map_Kd" => {
                 if split.len() < 2 {
                     panic!("MTL FILE CORRUPTED")
                 }
@@ -205,6 +210,12 @@ impl Objfile {
                     panic!("MTL FILE CORRUPTED")
                 }
                 self.tex[l - 1].text_map = Some(split[1].to_string());
+				if !self.textures.contains_key(split[1]) {
+					eprintln!("loading texture mtl {}", split[1]);
+					self.textures
+						.insert(split[1].to_string(), Texture::new(&self.gl));
+					self.textures.get_mut(split[1]).unwrap().load(format!("Ressources/{}", split[1]));
+				}
             }
             _ => {}
         };
@@ -422,6 +433,8 @@ impl Objfile {
         }
         for (index, name) in self.mtl_names.clone().into_iter().enumerate() {
 			if self.f.get(&name).is_none() {continue; }
+			self.tex[index].show = true;
+			self.tex[index].start = arr.len() as i32;
             //eprintln!("POUET {:?}", self.f);
             let color = self.tex[index].diffuse_color;
             for (i, face) in self.f.get(&name).expect(&format!("mtl {} not found in mtl list (had {:?})", &name, &self.mtl_names))[V].iter().enumerate() {
@@ -443,17 +456,16 @@ impl Objfile {
                 arr.push(color.1);
                 arr.push(color.2);
                 // text coord
-                //eprintln!("{}/{} self.vt {:?}", i, self.vt.len(),self.vt[649], self.f.get(&name).unwrap()[VT][i]);
                 if !self.vt.is_empty() && i < self.f.get(&name).unwrap()[VT].len() {
                     arr.push(self.vt[self.f.get(&name).unwrap()[VT][i] - 1][0]);
                     arr.push(self.vt[self.f.get(&name).unwrap()[VT][i] - 1][1]);
                 } else {
-                    // if no texture do it // TODO:
-                    arr.push(0.);
+					arr.push(0.);
                     arr.push(0.);
                 }
                 // normal coord
             }
+			self.tex[index].end = arr.len() as i32;
         }
         self.mid.x = lerp(self.min.x, self.max.x, 0.5);
         self.mid.y = lerp(self.min.y, self.max.y, 0.5);

@@ -11,8 +11,9 @@ pub struct Mtl {
     pub shininess: f32,
     pub text_map: Option<String>,
     /// offset for drawarray
-    pub start: usize,
-    pub end: usize,
+	pub show: bool,
+    pub start: i32,
+    pub end: i32,
 }
 
 impl Mtl {
@@ -25,6 +26,7 @@ impl Mtl {
             illum: 0,
             shininess: 0.,
             text_map: None,
+			show: false,
             start: 0,
             end: 0,
         }
@@ -39,6 +41,7 @@ impl Mtl {
             illum: 0,
             shininess: 0.,
             text_map: None,
+			show : false,
             start: 0,
             end: 0,
         }
