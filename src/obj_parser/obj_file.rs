@@ -1,7 +1,7 @@
 use super::mtl_file::Mtl;
 use crate::env::*;
 use crate::env::{Color, Point3d};
-use crate::mathlib::{classes::matrix::Matrix, operations::other::lerp};
+use crate::mathlib::{classes::{matrix::Matrix, vector::Vector}, operations::other::lerp};
 use crate::render_gl::texture::Texture;
 use rand::Rng;
 use std::collections::HashMap;
@@ -464,6 +464,19 @@ impl Objfile {
                     arr.push(0.);
                 }
                 // normal coord
+				if !self.vn.is_empty() && i < self.f.get(&name).unwrap()[VN].len() {
+					arr.push(self.vn[self.f.get(&name).unwrap()[VN][i] - 1][0]);
+					arr.push(self.vn[self.f.get(&name).unwrap()[VN][i] - 1][1]);
+					arr.push(self.vn[self.f.get(&name).unwrap()[VN][i] - 1][2]);
+				} else {
+					// cross product bb
+					let v = Vector::from(self.v[*face - 1 - cface].clone());
+					let u = Vector::from(self.v[*face - cface].clone());
+					let norm = Vector::cross_product(&u, &v).normalize();
+					arr.push(norm.data[0]);
+					arr.push(norm.data[1]);
+					arr.push(norm.data[2]);
+				}
             }
 			self.tex[index].end = arr.len() as i32;
         }
