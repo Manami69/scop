@@ -26,6 +26,6 @@ void main()
 	FragPos = vec3(transform * model);
 	pos = model.zy;
     TexCoord = aTexCoord;
-	norm = aNorm;
+	norm = mat3(transpose(inverse(transform))) * aNorm;
 	//TexDir = Position.xyz;
 }

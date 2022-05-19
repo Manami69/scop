@@ -19,7 +19,7 @@ void main()
 	vec4 text = texture(texture1, pos);
 	vec4 textureCoor = texture(texture2, TexCoord);
 	vec3 lightDir = normalize(lighting - FragPos);
-	float diff = max(dot(norm, lightDir), 0.0);
+	float diff = max(dot(normalize(norm), lightDir), 0.0);
 	vec3 diffuse = diff * vec3(1.,1.,1.);
 	vec4 couleur;
 	if (indextext == 0) { 

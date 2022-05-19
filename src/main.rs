@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::ffi::CString;
 pub mod mathlib;
 use env::ScopOption;
+use gl::PROGRAM_BINARY_FORMATS;
 use mathlib::classes::{matrix::Matrix, vector::Vector};
 use mathlib::operations::other::*;
 pub mod render_gl;
@@ -81,7 +82,7 @@ bisous 😘\n"
     vao.attrib(1, 3, 15, 4); // rand color
     vao.attrib(2, 3, 15, 7); // default color
     vao.attrib(3, 2, 15, 10); // texture mapping
-	vao.attrib(4, 3, 15, 12); // normal mapping
+    vao.attrib(4, 3, 15, 12); // normal mapping
 
     // set skybox
     // let vert_skybox_shader = Shader::from_vert_source(
@@ -117,8 +118,7 @@ bisous 😘\n"
     let opacity: gl::types::GLint; // opacity of the next texture
     let texture1: gl::types::GLint; // custom texture
     let texture2: gl::types::GLint; // object texture
-	let lighting: gl::types::GLint; // light position
-
+    let lighting: gl::types::GLint; // light position
     let uniform_pos_text: gl::types::GLint;
 
     let pos_text: Texture = Texture::new(&gl);
@@ -163,20 +163,18 @@ bisous 😘\n"
         let cname = std::ffi::CString::new("opacity").expect("CString::new failed");
         opacity = gl.GetUniformLocation(shader_program.id(), cname.as_ptr());
 
-
         let cname = std::ffi::CString::new("texture1").expect("CString::new failed");
         texture1 = gl.GetUniformLocation(shader_program.id(), cname.as_ptr());
 
         let cname = std::ffi::CString::new("texture2").expect("CString::new failed");
         texture2 = gl.GetUniformLocation(shader_program.id(), cname.as_ptr());
-		
-		let cname = std::ffi::CString::new("lightDir").expect("CString::new failed");
-        lighting = gl.GetUniformLocation(shader_program.id(), cname.as_ptr());
 
+        let cname = std::ffi::CString::new("lightDir").expect("CString::new failed");
+        lighting = gl.GetUniformLocation(shader_program.id(), cname.as_ptr());
     }
 
     let mut m: env::ModelEvent = env::ModelEvent::new();
-
+    let mut light: [f32; 3] = [1.2, 1., 2.];
     'main: loop {
         if m.keys.get("W").is_some() {
             m.trans.z += 0.1;
@@ -194,7 +192,7 @@ bisous 😘\n"
             m.trans.y -= 0.1;
         }
         if m.keys.get("R").is_some() {
-            m.trans.y -= 0.1;
+            m.trans.y += 0.1;
         }
         if m.keys.get("Up").is_some() {
             m.turn.y += 0.1;
@@ -214,6 +212,35 @@ bisous 😘\n"
         if m.keys.get("E").is_some() {
             m.turn.z += 0.1;
         }
+        // if m.keys.get("I").is_some() {
+        // 	light[0] += 0.2;
+        // 	println!("LIGHT {:?}", light);
+        // }
+        // if m.keys.get("J").is_some() {
+        // 	light[0] -= 0.2;
+        // 	println!("LIGHT {:?}", light);
+
+        // }
+        // if m.keys.get("O").is_some() {
+        // 	light[1] += 0.2;
+        // 	println!("LIGHT {:?}", light);
+
+        // }
+        // if m.keys.get("K").is_some() {
+        // 	light[1] -= 0.2;
+        // 	println!("LIGHT {:?}", light);
+
+        // }
+        // if m.keys.get("U").is_some() {
+        // 	light[2] += 0.2;
+        // 	println!("LIGHT {:?}", light);
+
+        // }
+        // if m.keys.get("H").is_some() {
+        // 	light[2] -= 0.2;
+        // 	println!("LIGHT {:?}", light);
+
+        // }
 
         for event in event_pump.poll_iter() {
             match event {
@@ -295,7 +322,7 @@ bisous 😘\n"
             gl.DepthMask(gl::TRUE);
             let view: Matrix<f32> = Matrix::view(
                 Vector::vec3(0., 00., m.cam_z),
-                Vector::vec3(obj.mid.x, obj.mid.y, -obj.mid.z),
+                Vector::vec3(0., 0., 0.),
                 Vector::vec3(0., 1., 0.),
             );
             shader_program.set_used();
@@ -310,36 +337,36 @@ bisous 😘\n"
                     //eprintln!("COUCOU {}", next_text);
                 }
             }
-			gl.Uniform1i(texture1, 0);
+            gl.Uniform1i(texture1, 0);
             gl.ActiveTexture(gl::TEXTURE0);
             pos_text.bind();
             gl.UniformMatrix4fv(transform_loc, 1, gl::FALSE, model.as_ptr());
             gl.UniformMatrix4fv(persp_loc, 1, gl::FALSE, perspective.as_ptr());
             gl.UniformMatrix4fv(camera_loc, 1, gl::FALSE, view.as_ptr());
-			gl.Uniform3f(lighting, 2., -3., 5.);
+            //gl.UniformMatrix4fv(inv_trans_loc, 1,0,model.inverse().unwrap().as_ptr());
+            gl.Uniform3f(lighting, light[0], light[1], light[2]);
             // TODO: dessiner par mtl
-			for (i, val) in obj.tex.clone().into_iter().enumerate() {
-				if val.show == false {continue ;}
-				
-				gl.Uniform1i(texture2, 1);
-				gl.ActiveTexture(gl::TEXTURE1);
-				match val.text_map {
-					Some(tex) => {
-						obj.textures.get(&tex).unwrap().bind();
-						//println!("GLOUGLOU {}", &tex);
-					},
-					None => {  
-						gl.BindTexture(gl::TEXTURE_2D, 0)
-					}
-				}
-				
-				gl.DrawArrays(
-                gl::TRIANGLES,             // mode
-                val.start,                         // starting index in the enabled arrays
-                val.end - val.start , // number of indices to be rendered 
-            );
-		}
-           
+            for (i, val) in obj.tex.clone().into_iter().enumerate() {
+                if val.show == false {
+                    continue;
+                }
+
+                gl.Uniform1i(texture2, 1);
+                gl.ActiveTexture(gl::TEXTURE1);
+                match val.text_map {
+                    Some(tex) => {
+                        obj.textures.get(&tex).unwrap().bind();
+                        //println!("GLOUGLOU {}", &tex);
+                    }
+                    None => gl.BindTexture(gl::TEXTURE_2D, 0),
+                }
+
+                gl.DrawArrays(
+                    gl::TRIANGLES,       // mode
+                    val.start,           // starting index in the enabled arrays
+                    val.end - val.start, // number of indices to be rendered
+                );
+            }
         }
         window.gl_swap_window();
         // render window contents here

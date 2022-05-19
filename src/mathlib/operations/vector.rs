@@ -274,6 +274,13 @@ where
 
         Vector::from([a, b, c])
     }
+
+	pub fn cross_2d(u: &Vector<f32>, v: &Vector<f32>) -> f32 {
+		if u.size() != 2 || v.size() != 2 {
+            panic!("cross product can only be done with 3 dimension vectors");
+        }
+		u.data[0] * v.data[1] - u.data[1] * v.data[0]
+	}
 }
 
 impl<V> Vector<V>

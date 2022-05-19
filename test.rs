@@ -9,7 +9,5 @@
 // }
 
 fn main() {
-   let p = "32.3//232".to_string();
-   let v  = p.iter().take_while(|c| !c.is_digit()).collect();
-	println!("|{}|", p.parse::<usize>().unwrap());
+	println!("{}", (-1) % 4);
 }
