@@ -8,11 +8,14 @@ in vec2 pos;
 in vec2 TexCoord;
 in vec3 norm;
 in vec3 FragPos;
+in vec3 Position;
+uniform vec3 cameraPos;
 uniform int indextext;
 uniform float opacity;
 uniform sampler2D texture1;
 uniform sampler2D texture2;
 uniform vec3 lighting;
+uniform samplerCube texture3;
 
 void main()
 {
@@ -22,6 +25,9 @@ void main()
 	float diff = max(dot(normalize(norm), lightDir), 0.0);
 	vec3 diffuse = diff * vec3(1.,1.,1.);
 	vec4 couleur;
+	vec3 I = normalize(Position - cameraPos);
+	vec3 R = reflect(I, normalize(norm));
+	vec4 reflectColor = vec4(texture(texture3, R).rgb, 1.0);
 	if (indextext == 0) { 
     	couleur = baseColor * (1 - opacity) + randColor * opacity; 
 	}
@@ -32,7 +38,10 @@ void main()
 		couleur = text * (1 - opacity) + textureCoor * opacity;
 	}
 	else if (indextext == 3) {
-		couleur = textureCoor * (1 - opacity) + baseColor * opacity;
+		couleur = textureCoor * (1 - opacity) + reflectColor * opacity;
+	}
+	else if (indextext == 4) {
+		couleur = reflectColor * (1 - opacity) + baseColor * opacity;
 	}
 	Color = vec4(couleur.rgb * diffuse, couleur.a);
 }

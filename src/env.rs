@@ -7,7 +7,7 @@ pub const WIDTH: u32 = 1280;
 /// Window's name
 pub const NAME: &str = "scop";
 /// textures max
-pub const TEXT_MAX: i32 = 4;
+pub const TEXT_MAX: i32 = 5;
 #[derive(Clone, Copy, PartialEq)]
 pub struct Color(pub f32, pub f32, pub f32);
 pub struct Point3d {
@@ -79,7 +79,7 @@ impl ScopOption {
 
     pub fn fill_options(&mut self, args: Vec<String>) {
         let mut next = false;
-        for (i, arg) in args.into_iter().enumerate() {
+        for (_, arg) in args.into_iter().enumerate() {
             match arg.as_str() {
                 "/concave" => {
                     if next {

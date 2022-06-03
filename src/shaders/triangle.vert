@@ -16,6 +16,7 @@ out vec4 randColor;
 out vec2 pos;
 out vec2 TexCoord;
 out vec3 norm;
+out vec3 Position;
 out vec3 FragPos;
 
 void main()
@@ -27,5 +28,6 @@ void main()
 	pos = model.zy;
     TexCoord = aTexCoord;
 	norm = mat3(transpose(inverse(transform))) * aNorm;
+	Position = vec3(transform * model);
 	//TexDir = Position.xyz;
 }

@@ -1,8 +1,6 @@
-use std::collections::HashMap;
 use std::ffi::CString;
 pub mod mathlib;
 use env::ScopOption;
-use gl::PROGRAM_BINARY_FORMATS;
 use mathlib::classes::{matrix::Matrix, vector::Vector};
 use mathlib::operations::other::*;
 pub mod render_gl;
@@ -13,6 +11,7 @@ use std::io;
 pub mod env;
 pub mod obj_parser;
 use obj_parser::obj_file::Objfile;
+
 
 #[warn(unused_variables)]
 fn main() -> Result<(), io::Error> {
@@ -84,31 +83,31 @@ bisous 😘\n"
     vao.attrib(3, 2, 15, 10); // texture mapping
     vao.attrib(4, 3, 15, 12); // normal mapping
 
-    // set skybox
-    // let vert_skybox_shader = Shader::from_vert_source(
-    //     &gl,
-    //     &CString::new(include_str!("shaders/skybox.vert")).unwrap(),
-    // )
-    // .unwrap();
+    // set skybox ////////////////////////
+    let vert_skybox_shader = Shader::from_vert_source(
+        &gl,
+        &CString::new(include_str!("shaders/skybox.vert")).unwrap(),
+    )
+    .unwrap();
 
-    // let frag_skybox_shader = Shader::from_frag_source(
-    //     &gl,
-    //     &CString::new(include_str!("shaders/skybox.frag")).unwrap(),
-    // )
-    // .unwrap();
+    let frag_skybox_shader = Shader::from_frag_source(
+        &gl,
+        &CString::new(include_str!("shaders/skybox.frag")).unwrap(),
+    )
+    .unwrap();
 
-    // let skybox_program =
-    //     Program::from_shaders(&gl, &[vert_skybox_shader, frag_skybox_shader]).unwrap();
-    // skybox_program.set_used();
-    // let skybox_vao = Vao::new(&gl);
-    // skybox_vao.bind();
-    // let skybox_buffer = Vbo::new(&gl);
-    // skybox_buffer.bind();
-    // skybox_buffer.set_vertex(&Vec::from(env::SKYBOX_VERTICES));
+    let skybox_program =
+        Program::from_shaders(&gl, &[vert_skybox_shader, frag_skybox_shader]).unwrap();
+    skybox_program.set_used();
+    let skybox_vao = Vao::new(&gl);
+    skybox_vao.bind();
+    let skybox_buffer = Vbo::new(&gl);
+    skybox_buffer.bind();
+    skybox_buffer.set_vertex(&Vec::from(env::SKYBOX_VERTICES));
 
-    // skybox_vao.attrib(0, 3, 3, 0);
+    skybox_vao.attrib(0, 3, 3, 0);
 
-    /////
+    ///////////////////
     let perspective: Matrix<f32> = Matrix::projection(radian(60.), 1.77777776, 0.1, 100.);
 
     let transform_loc: gl::types::GLint;
@@ -118,26 +117,31 @@ bisous 😘\n"
     let opacity: gl::types::GLint; // opacity of the next texture
     let texture1: gl::types::GLint; // custom texture
     let texture2: gl::types::GLint; // object texture
+	let texture_skybox: gl::types::GLint; // texture skybox
     let lighting: gl::types::GLint; // light position
-    let uniform_pos_text: gl::types::GLint;
+	let camera_pos: gl::types::GLint;
+    // let uniform_pos_text: gl::types::GLint;
 
     let pos_text: Texture = Texture::new(&gl);
     pos_text.load("Ressources/Textures/large_qpupier.png".to_string());
-    // let skybox_persp: gl::types::GLint;
-    // let skybox_camera: gl::types::GLint;
+
+    // load skybox assets /////////////////////
+    let skybox_persp: gl::types::GLint;
+    let skybox_camera: gl::types::GLint;
 
     // TEXTURES MAPPING CUBE
-    // let texture: Texture = Texture::new_cube(&gl);
-    // let faces = vec![
-    //     "skybox/right.jpg".to_string(),
-    //     "skybox/left.jpg".into(),
-    //     "skybox/top.jpg".into(),
-    //     "skybox/bottom.jpg".into(),
-    //     "skybox/front.jpg".into(),
-    //     "skybox/back.jpg".into(),
-    // ];
-    // //let faces = vec!["wall.jpg".to_string(); 6];
-    // texture.load_cube(faces);
+    let texture: Texture = Texture::new_cube(&gl);
+    let faces = vec![
+        "Ressources/skybox/right.jpg".to_string(),
+        "Ressources/skybox/left.jpg".into(),
+        "Ressources/skybox/top.jpg".into(),
+        "Ressources/skybox/bottom.jpg".into(),
+        "Ressources/skybox/front.jpg".into(),
+        "Ressources/skybox/back.jpg".into(),
+
+    ];
+    //let faces = vec!["wall.jpg".to_string(); 6];
+    texture.load_cube(faces);
     ///////////
     unsafe {
         let cname = std::ffi::CString::new("transform").expect("CString::new failed");
@@ -145,19 +149,19 @@ bisous 😘\n"
 
         let cname = std::ffi::CString::new("perspective").expect("CString::new failed");
         persp_loc = gl.GetUniformLocation(shader_program.id(), cname.as_ptr());
-        // skybox_persp = gl.GetUniformLocation(skybox_program.id(), cname.as_ptr());
+        skybox_persp = gl.GetUniformLocation(skybox_program.id(), cname.as_ptr());
 
         let cname = std::ffi::CString::new("camera").expect("CString::new failed");
         camera_loc = gl.GetUniformLocation(shader_program.id(), cname.as_ptr());
-        // skybox_camera = gl.GetUniformLocation(skybox_program.id(), cname.as_ptr());
+        skybox_camera = gl.GetUniformLocation(skybox_program.id(), cname.as_ptr());
 
-        // let cname = std::ffi::CString::new("skybox").expect("CString::new failed");
-        // gl.Uniform1i(
-        //     gl.GetUniformLocation(skybox_program.id(), cname.as_ptr()),
-        //     0,
-        // );
-        let cname = std::ffi::CString::new("texture_position").expect("CString::new failed");
-        uniform_pos_text = gl.GetUniformLocation(shader_program.id(), cname.as_ptr());
+        let cname = std::ffi::CString::new("skybox").expect("CString::new failed");
+        gl.Uniform1i(
+            gl.GetUniformLocation(skybox_program.id(), cname.as_ptr()),
+            0,
+        );
+        // let cname = std::ffi::CString::new("texture_position").expect("CString::new failed");
+        // uniform_pos_text = gl.GetUniformLocation(shader_program.id(), cname.as_ptr());
         let cname = std::ffi::CString::new("indextext").expect("CString::new failed");
         text_index = gl.GetUniformLocation(shader_program.id(), cname.as_ptr());
         let cname = std::ffi::CString::new("opacity").expect("CString::new failed");
@@ -169,12 +173,17 @@ bisous 😘\n"
         let cname = std::ffi::CString::new("texture2").expect("CString::new failed");
         texture2 = gl.GetUniformLocation(shader_program.id(), cname.as_ptr());
 
+		let cname = std::ffi::CString::new("texture3").expect("CString::new failed");
+        texture_skybox = gl.GetUniformLocation(shader_program.id(), cname.as_ptr());
         let cname = std::ffi::CString::new("lightDir").expect("CString::new failed");
         lighting = gl.GetUniformLocation(shader_program.id(), cname.as_ptr());
+
+		let cname = std::ffi::CString::new("cameraPos").expect("CString::new failed");
+        camera_pos = gl.GetUniformLocation(shader_program.id(), cname.as_ptr());
     }
 
     let mut m: env::ModelEvent = env::ModelEvent::new();
-    let mut light: [f32; 3] = [1.2, 1., 2.];
+    let light: [f32; 3] = [1.2, 1., 2.]; // TODO: 
     'main: loop {
         if m.keys.get("W").is_some() {
             m.trans.z += 0.1;
@@ -212,35 +221,6 @@ bisous 😘\n"
         if m.keys.get("E").is_some() {
             m.turn.z += 0.1;
         }
-        // if m.keys.get("I").is_some() {
-        // 	light[0] += 0.2;
-        // 	println!("LIGHT {:?}", light);
-        // }
-        // if m.keys.get("J").is_some() {
-        // 	light[0] -= 0.2;
-        // 	println!("LIGHT {:?}", light);
-
-        // }
-        // if m.keys.get("O").is_some() {
-        // 	light[1] += 0.2;
-        // 	println!("LIGHT {:?}", light);
-
-        // }
-        // if m.keys.get("K").is_some() {
-        // 	light[1] -= 0.2;
-        // 	println!("LIGHT {:?}", light);
-
-        // }
-        // if m.keys.get("U").is_some() {
-        // 	light[2] += 0.2;
-        // 	println!("LIGHT {:?}", light);
-
-        // }
-        // if m.keys.get("H").is_some() {
-        // 	light[2] -= 0.2;
-        // 	println!("LIGHT {:?}", light);
-
-        // }
 
         for event in event_pump.poll_iter() {
             match event {
@@ -288,11 +268,7 @@ bisous 😘\n"
         unsafe {
             gl.Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
             gl.DepthRange(0., 1.);
-            if m.poly {
-                gl.PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
-            } else {
-                gl.PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
-            }
+            gl.PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
         }
         unsafe {
             let mut model: Matrix<f32> = Matrix::mat4();
@@ -304,27 +280,34 @@ bisous 😘\n"
 
             model = model.translate(m.trans.x, m.trans.y, m.trans.z);
             // SKYBOX
-            // gl.DepthMask(gl::FALSE);
-            // skybox_program.set_used();
-            // skybox_vao.bind();
+            gl.DepthMask(gl::FALSE);
+            skybox_program.set_used();
+            skybox_vao.bind();
             // position camera, position + vecteur front , up
-            // let view = Matrix::view(
-            //     Vector::vec3(0., 0., 0.),
-            //     Vector::vec3(0., 0., -1.),
-            //     Vector::vec3(0., 1., 0.),
-            // );
-            // gl.UniformMatrix4fv(skybox_persp, 1, gl::FALSE, perspective.as_ptr());
-            // gl.UniformMatrix4fv(skybox_camera, 1, gl::FALSE, view.as_ptr());
-            // bind texture
-            // gl.ActiveTexture(gl::TEXTURE0);
-            // texture.bind_cube();
-            // gl.DrawArrays(gl::TRIANGLES, 0, 36);
-            gl.DepthMask(gl::TRUE);
-            let view: Matrix<f32> = Matrix::view(
-                Vector::vec3(0., 00., m.cam_z),
+            let view = Matrix::view(
                 Vector::vec3(0., 0., 0.),
+                Vector::vec3(0., 0., -1.),
                 Vector::vec3(0., 1., 0.),
             );
+            gl.UniformMatrix4fv(skybox_persp, 1, gl::FALSE, perspective.as_ptr());
+            gl.UniformMatrix4fv(skybox_camera, 1, gl::FALSE, view.as_ptr());
+            // bind texture
+            gl.ActiveTexture(gl::TEXTURE0);
+            texture.bind_cube();
+            gl.DrawArrays(gl::TRIANGLES, 0, 36);
+            //////
+			
+            if m.poly {
+				gl.PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
+            }
+			
+            gl.DepthMask(gl::TRUE);
+            let view: Matrix<f32> = Matrix::view(
+				Vector::vec3(0., 00., m.cam_z),
+                Vector::vec3(0., 0., -1.),
+                Vector::vec3(0., 1., 0.),
+            );
+			gl.Uniform3f(camera_pos, 0., 0., m.cam_z);
             shader_program.set_used();
             vao.bind();
             gl.Uniform1i(text_index, m.text_i);
@@ -340,13 +323,16 @@ bisous 😘\n"
             gl.Uniform1i(texture1, 0);
             gl.ActiveTexture(gl::TEXTURE0);
             pos_text.bind();
+			gl.Uniform1i(texture_skybox, 2);
+			gl.ActiveTexture(gl::TEXTURE2);
+			texture.bind_cube();
+
             gl.UniformMatrix4fv(transform_loc, 1, gl::FALSE, model.as_ptr());
             gl.UniformMatrix4fv(persp_loc, 1, gl::FALSE, perspective.as_ptr());
             gl.UniformMatrix4fv(camera_loc, 1, gl::FALSE, view.as_ptr());
             //gl.UniformMatrix4fv(inv_trans_loc, 1,0,model.inverse().unwrap().as_ptr());
             gl.Uniform3f(lighting, light[0], light[1], light[2]);
-            // TODO: dessiner par mtl
-            for (i, val) in obj.tex.clone().into_iter().enumerate() {
+            for (_, val) in obj.tex.clone().into_iter().enumerate() {
                 if val.show == false {
                     continue;
                 }
@@ -356,7 +342,6 @@ bisous 😘\n"
                 match val.text_map {
                     Some(tex) => {
                         obj.textures.get(&tex).unwrap().bind();
-                        //println!("GLOUGLOU {}", &tex);
                     }
                     None => gl.BindTexture(gl::TEXTURE_2D, 0),
                 }

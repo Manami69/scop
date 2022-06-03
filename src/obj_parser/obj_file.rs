@@ -6,10 +6,10 @@ use crate::mathlib::{
     operations::other::lerp,
 };
 use crate::render_gl::texture::Texture;
+use colored::*;
 use rand::Rng;
 use std::collections::HashMap;
 use std::fs::File;
-use std::hash::Hash;
 use std::io::{prelude::*, BufReader};
 use std::path::Path;
 //use itertools::izip; //     for (x, y, z) in izip!(&a, &b, &c) {
@@ -56,7 +56,7 @@ pub struct FacePoint {
 
 use std::fmt;
 impl fmt::Display for FacePoint {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "({}, {})", self.x, self.y)
     }
 }
@@ -385,7 +385,13 @@ impl Objfile {
         self.vn.push(vec);
     }
     // seulement pour les plan > 3m
-    fn check_coplanar(&mut self, vec: Vec<usize>) {
+    fn check_coplanar(&mut self, vec: Vec<usize>, ear_cliping: bool) {
+        let determinant: f32;
+        if ear_cliping {
+            determinant = 0.;
+        } else {
+            determinant = 0.0001
+        }
         let mut test: Vec<f32> = vec![];
         let mut minus: [f32; 3] = [0.; 3];
         let len = vec.len() - 1;
@@ -402,7 +408,15 @@ impl Objfile {
         }
         let mat = Matrix::from((test, [len, 3])).transpose();
         if mat.rank() > 2 {
-            if len == 3 && mat.determinant() > 0.00001 {
+            if len == 3 && mat.determinant() > determinant {
+                if ear_cliping == true {
+                    eprintln!(
+                        "{}",
+                        "Face is not exactly coplanar so the concave checking can't be made"
+                            .bold()
+                            .red()
+                    );
+                }
                 panic!("Non coplanar face");
             } else {
                 for i in 0..len - 2 {
@@ -419,19 +433,19 @@ impl Objfile {
         let mut triangles: Vec<usize> = vec![];
         let mut index: usize = 0;
 
-        let x_axis = Vector::from(self.v[faces[1] - 1].clone()[0 .. 3].to_vec())
-            - Vector::from(self.v[faces[0] - 1].clone()[0 .. 3].to_vec()).normalize();
-			println!("{}", &x_axis);
+        let x_axis = Vector::from(self.v[faces[1] - 1].clone()[0..3].to_vec())
+            - Vector::from(self.v[faces[0] - 1].clone()[0..3].to_vec()).normalize();
+        // println!("{}", &x_axis);
         let plan_normal = Vector::cross_product(
             &x_axis,
-            &(Vector::from(self.v[faces[2] - 1].clone()[0 .. 3].to_vec())
-                - Vector::from(self.v[faces[0] - 1].clone()[0 .. 3].to_vec()).normalize()),
+            &(Vector::from(self.v[faces[2] - 1].clone()[0..3].to_vec())
+                - Vector::from(self.v[faces[0] - 1].clone()[0..3].to_vec()).normalize()),
         )
         .normalize();
         let y_axis = Vector::cross_product(&x_axis, &plan_normal).normalize();
         for (_, face) in faces.into_iter().enumerate() {
             let point = self.v[*face - 1].clone();
-			println!("({}, {}, {})", point[0], point[1], point[2]);
+            // println!("({}, {}, {})", point[0], point[1], point[2]);
             polygon.push(FacePoint::new_from_3d(
                 &plan_normal,
                 &x_axis,
@@ -441,7 +455,7 @@ impl Objfile {
             ));
         }
         while !polygon.is_empty() {
-			eprintln!("{:?}", polygon);
+            // eprintln!("{:?}", polygon);
             if polygon.len() == 3 {
                 triangles.push(polygon[0].f);
                 triangles.push(polygon[1].f);
@@ -466,8 +480,8 @@ impl Objfile {
             // S'il est positif, les trois points constituent un « tournant à gauche ». Dans le cas contraire, c'est un « tournant à droite ».
             let turn = ((polygon[index].x - polygon[last].x) * (polygon[next].y - polygon[last].y))
                 - ((polygon[index].y - polygon[last].y) * (polygon[next].x - polygon[last].x));
-			eprintln!("{}", turn);
-            if turn == 0. {
+            //eprintln!("{}", turn);
+            if turn < 0.00001 && turn >= 0. {
                 polygon.remove(index);
                 continue;
             }
@@ -490,14 +504,8 @@ impl Objfile {
                         polygon[index].x - polygon[last].x,
                         polygon[index].y - polygon[last].y,
                     ]);
-                    let am = Vector::from([
-                        point.x - polygon[last].x,
-                        point.y - polygon[last].y,
-                    ]);
-                    let bm = Vector::from([
-                        point.x - polygon[index].x,
-                        point.y - polygon[index].y,
-                    ]);
+                    let am = Vector::from([point.x - polygon[last].x, point.y - polygon[last].y]);
+                    let bm = Vector::from([point.x - polygon[index].x, point.y - polygon[index].y]);
                     let bc = Vector::from([
                         polygon[next].x - polygon[index].x,
                         polygon[next].y - polygon[index].y,
@@ -506,34 +514,32 @@ impl Objfile {
                         polygon[last].x - polygon[next].x,
                         polygon[last].y - polygon[next].y,
                     ]);
-                    let cm = Vector::from([
-                        point.x - polygon[last].x,
-                        point.y - polygon[last].y,
-                    ]);
+                    let cm = Vector::from([point.x - polygon[last].x, point.y - polygon[last].y]);
 
-
-                    if Vector::<f32>::cross_2d(&ab, &am) > 0. || Vector::<f32>::cross_2d(&bc, &bm) > 0.0 || Vector::<f32>::cross_2d(&ca, &cm) > 0.0
-                    {} else {
-						inside = true;
-						break;
-					}
+                    if Vector::<f32>::cross_2d(&ab, &am) > 0.
+                        || Vector::<f32>::cross_2d(&bc, &bm) > 0.0
+                        || Vector::<f32>::cross_2d(&ca, &cm) > 0.0
+                    {
+                    } else {
+                        inside = true;
+                        break;
+                    }
                 }
                 if !inside {
                     triangles.push(polygon[last].f);
                     triangles.push(polygon[index].f);
                     triangles.push(polygon[next].f);
                     polygon.remove(index);
+                } else {
+                    index = (index + 1) % polygon.len();
                 }
-				else {
-					index = (index + 1) % polygon.len();
-				}
             //index = (index + 1) % polygon.len();
             } else {
                 println!("Concave polygon detected.");
                 index = (index + 1) % polygon.len();
             }
         }
-        println!("{:?}", triangles);
+        // println!("{:?}", triangles);
         triangles
     }
 
@@ -567,7 +573,7 @@ impl Objfile {
         // TODO: mettre les checks
         if veclen > 3 {
             if opt.coplana == true || opt.concave == true {
-                self.check_coplanar(vec[V].clone());
+                self.check_coplanar(vec[V].clone(), opt.concave);
             }
             // ear clipping triangulation
             if opt.concave == true {

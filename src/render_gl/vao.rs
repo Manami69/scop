@@ -1,5 +1,3 @@
-use super::vbo::Vbo;
-
 pub struct Vao {
     id: gl::types::GLuint,
     gl: gl::Gl,
