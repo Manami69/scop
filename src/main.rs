@@ -12,7 +12,6 @@ pub mod env;
 pub mod obj_parser;
 use obj_parser::obj_file::Objfile;
 
-
 #[warn(unused_variables)]
 fn main() -> Result<(), io::Error> {
     // args
@@ -47,7 +46,6 @@ bisous 😘\n"
     }
     let mut obj = Objfile::new(&gl);
     obj.read_file(&args[1], &opt);
-    
 
     let vert_shader = Shader::from_vert_source(
         &gl,
@@ -116,16 +114,15 @@ bisous 😘\n"
     let opacity: gl::types::GLint; // opacity of the next texture
     let texture1: gl::types::GLint; // custom texture
     let texture2: gl::types::GLint; // object texture
-	let texture_skybox: gl::types::GLint; // texture skybox
+    let texture_skybox: gl::types::GLint; // texture skybox
     let lighting: gl::types::GLint; // light position
-	let camera_pos: gl::types::GLint;
-   
+    let camera_pos: gl::types::GLint;
 
     let pos_text: Texture = Texture::new(&gl);
-	let text_name: String = match opt.text {
-		Some(img) => img,
-		None => "Ressources/Textures/large_qpupier.png".to_string(),
-	};
+    let text_name: String = match opt.text {
+        Some(img) => img,
+        None => "Ressources/Textures/large_qpupier.png".to_string(),
+    };
     pos_text.load(text_name);
 
     // load skybox assets /////////////////////
@@ -141,7 +138,6 @@ bisous 😘\n"
         "Ressources/skybox/bottom.jpg".into(),
         "Ressources/skybox/front.jpg".into(),
         "Ressources/skybox/back.jpg".into(),
-
     ];
     texture.load_cube(faces);
     ///////////
@@ -175,17 +171,17 @@ bisous 😘\n"
         let cname = std::ffi::CString::new("texture2").expect("CString::new failed");
         texture2 = gl.GetUniformLocation(shader_program.id(), cname.as_ptr());
 
-		let cname = std::ffi::CString::new("texture3").expect("CString::new failed");
+        let cname = std::ffi::CString::new("texture3").expect("CString::new failed");
         texture_skybox = gl.GetUniformLocation(shader_program.id(), cname.as_ptr());
         let cname = std::ffi::CString::new("lightDir").expect("CString::new failed");
         lighting = gl.GetUniformLocation(shader_program.id(), cname.as_ptr());
 
-		let cname = std::ffi::CString::new("cameraPos").expect("CString::new failed");
+        let cname = std::ffi::CString::new("cameraPos").expect("CString::new failed");
         camera_pos = gl.GetUniformLocation(shader_program.id(), cname.as_ptr());
     }
 
     let mut m: env::ModelEvent = env::ModelEvent::new();
-    let light: [f32; 3] = [1.2, 1., 2.]; // TODO: 
+    let light: [f32; 3] = [1.2, 1., 2.]; // TODO:
     'main: loop {
         if m.keys.get("W").is_some() {
             m.trans.z += 0.1;
@@ -298,18 +294,18 @@ bisous 😘\n"
             texture.bind_cube();
             gl.DrawArrays(gl::TRIANGLES, 0, 36);
             //////
-			
+
             if m.poly {
-				gl.PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
+                gl.PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
             }
-			
+
             gl.DepthMask(gl::TRUE);
             let view: Matrix<f32> = Matrix::view(
-				Vector::vec3(0., 00., m.cam_z),
+                Vector::vec3(0., 00., m.cam_z),
                 Vector::vec3(0., 0., -1.),
                 Vector::vec3(0., 1., 0.),
             );
-			gl.Uniform3f(camera_pos, 0., 0., m.cam_z);
+            gl.Uniform3f(camera_pos, 0., 0., m.cam_z);
             shader_program.set_used();
             vao.bind();
             gl.Uniform1i(text_index, m.text_i);
@@ -325,9 +321,9 @@ bisous 😘\n"
             gl.Uniform1i(texture1, 0);
             gl.ActiveTexture(gl::TEXTURE0);
             pos_text.bind();
-			gl.Uniform1i(texture_skybox, 2);
-			gl.ActiveTexture(gl::TEXTURE2);
-			texture.bind_cube();
+            gl.Uniform1i(texture_skybox, 2);
+            gl.ActiveTexture(gl::TEXTURE2);
+            texture.bind_cube();
 
             gl.UniformMatrix4fv(transform_loc, 1, gl::FALSE, model.as_ptr());
             gl.UniformMatrix4fv(persp_loc, 1, gl::FALSE, perspective.as_ptr());

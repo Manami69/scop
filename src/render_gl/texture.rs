@@ -80,11 +80,10 @@ impl Texture {
     pub fn load(&self, path: String) {
         self.bind();
         let img;
-		match image::open(path) {
-			Ok(open) => img = open,
-			Err(e) => panic!("{} : {}", "IMAGE PARSING ERROR", e)
-
-		}
+        match image::open(path) {
+            Ok(open) => img = open,
+            Err(e) => panic!("{} : {}", "IMAGE PARSING ERROR", e),
+        }
         let data = img.to_rgb8().into_raw();
         unsafe {
             self.gl.TexImage2D(
