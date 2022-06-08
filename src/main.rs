@@ -22,7 +22,6 @@ fn main() -> Result<(), io::Error> {
             "\x1b[93mYou must launch the program with the obj file name as an arg
 	cargo run [obj file path] [Options...]\n\x1b[0m
 Options : 
-	/sky : show the skybox
 	/concave : check if the model has a concave polygon and panic! if so
 	/coplanar : check if the model has a non-coplanar polygon and panic! if so
 	/t texture_path : use a specific texture
@@ -48,7 +47,7 @@ bisous 😘\n"
     }
     let mut obj = Objfile::new(&gl);
     obj.read_file(&args[1], &opt);
-    // TODO: FOUTRE DANS LA CLASSE SHADER
+    
 
     let vert_shader = Shader::from_vert_source(
         &gl,
@@ -120,10 +119,14 @@ bisous 😘\n"
 	let texture_skybox: gl::types::GLint; // texture skybox
     let lighting: gl::types::GLint; // light position
 	let camera_pos: gl::types::GLint;
-    // let uniform_pos_text: gl::types::GLint;
+   
 
     let pos_text: Texture = Texture::new(&gl);
-    pos_text.load("Ressources/Textures/large_qpupier.png".to_string());
+	let text_name: String = match opt.text {
+		Some(img) => img,
+		None => "Ressources/Textures/large_qpupier.png".to_string(),
+	};
+    pos_text.load(text_name);
 
     // load skybox assets /////////////////////
     let skybox_persp: gl::types::GLint;
@@ -140,7 +143,6 @@ bisous 😘\n"
         "Ressources/skybox/back.jpg".into(),
 
     ];
-    //let faces = vec!["wall.jpg".to_string(); 6];
     texture.load_cube(faces);
     ///////////
     unsafe {

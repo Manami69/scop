@@ -25,7 +25,7 @@ void main()
 	baseColor = vec4(aColor , 1.0);
 	randColor = vec4(aRandColor , 1.0);
 	FragPos = vec3(transform * model);
-	pos = model.zy;
+	pos = vec2(model.z, -model.y);
     TexCoord = aTexCoord;
 	norm = mat3(transpose(inverse(transform))) * aNorm;
 	Position = vec3(transform * model);

@@ -1,5 +1,3 @@
-// TODO: A modifier et nmettre dans une hashmap selon les groupes objets dans le .obj
-// TODO: ici genere 1 texture mais Gentexture genere n texture ( a voir avec l'avancee du parsing obj)
 pub struct Texture {
     id: gl::types::GLuint,
     gl: gl::Gl,
@@ -81,7 +79,12 @@ impl Texture {
 
     pub fn load(&self, path: String) {
         self.bind();
-        let img = image::open(path).unwrap();
+        let img;
+		match image::open(path) {
+			Ok(open) => img = open,
+			Err(e) => panic!("{} : {}", "IMAGE PARSING ERROR", e)
+
+		}
         let data = img.to_rgb8().into_raw();
         unsafe {
             self.gl.TexImage2D(

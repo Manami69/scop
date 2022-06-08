@@ -64,7 +64,6 @@ impl ModelEvent {
 pub struct ScopOption {
     pub concave: bool,
     pub coplana: bool,
-    pub skybox: bool,
     pub text: Option<String>,
 }
 impl ScopOption {
@@ -72,7 +71,6 @@ impl ScopOption {
         Self {
             concave: false,
             coplana: false,
-            skybox: false,
             text: None,
         }
     }
@@ -92,12 +90,6 @@ impl ScopOption {
                         panic!("Options not well formated")
                     }
                     self.coplana = true;
-                }
-                "/sky" => {
-                    if next {
-                        panic!("Options not well formated")
-                    }
-                    self.skybox = true;
                 }
                 "/t" => next = true,
                 _ => {

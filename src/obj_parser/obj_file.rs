@@ -157,7 +157,11 @@ impl Objfile {
 
         let reader = BufReader::new(file);
         for line in reader.lines() {
-            self.parse_line(&line.unwrap(), opt);
+			match line {
+				Ok(l) => {self.parse_line(&l, opt)},
+				Err(e) => {panic!("error with obj file : {}", e)}
+			}
+            ;
         }
         //println!("{:?}", self.v);
     }
@@ -184,11 +188,22 @@ impl Objfile {
                 "v" => self.parse_v(split),
                 "vt" => self.parse_vt(split),
                 "vn" => self.parse_vn(split),
-                // "vp" => todo!(),
+            	"vp" => {},
                 "usemtl" => self.parse_usemtl(split), // met le bon material dans current si pas trouve alors default value // TODO:
                 "f" => self.parse_f(split, opt),
-                // "l" => todo!(),
-                _ => {}
+                "l" => {},
+				"o" => {},
+				"s" => {},
+				"g" => {},
+                _ => {
+					if split[0].is_empty() {}
+					else if split[0].chars().nth(0) == Some('#') {
+						// comment
+					}
+					else {
+						eprintln!("{} {}", "[PARSING CONTINUES...] INVALID LINE IN OBJ FILE : ".red().bold(), &line);
+					}
+				}
             }
         }
     }
